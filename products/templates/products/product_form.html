@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit {{ object.name }}{% else %}Add New Product{% endif %} — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <h2 class="mb-4">{% if object %}Edit: {{ object.name }}{% else %}Add New Product{% endif %}</h2>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            <!-- Basic info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><h5 class="mb-0">Product Details</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Product name <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description <span class="text-danger">*</span></label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}<div class="text-danger small">{{ form.category.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Price (£) <span class="text-danger">*</span></label>
+                            {{ form.price }}
+                            {% if form.price.errors %}<div class="text-danger small">{{ form.price.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Unit <span class="text-danger">*</span></label>
+                            {{ form.unit }}
+                            {% if form.unit.errors %}<div class="text-danger small">{{ form.unit.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Stock quantity <span class="text-danger">*</span></label>
+                            {{ form.stock_quantity }}
+                            {% if form.stock_quantity.errors %}<div class="text-danger small">{{ form.stock_quantity.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Product image</label>
+                            {{ form.image }}
+                            {% if object.image %}<div class="form-text">Current: <a href="{{ object.image.url }}" target="_blank">{{ object.image.name }}</a></div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_organic }}
+                        <label class="form-check-label" for="{{ form.is_organic.id_for_label }}">
+                            <i class="bi bi-leaf text-success"></i> Certified Organic
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seasonal availability (TC-016) -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><h5 class="mb-0">Seasonal Availability</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Availability status</label>
+                        {{ form.availability_status }}
+                    </div>
+                    <div id="season-dates" class="row {% if form.initial.availability_status != 'in_season' %}d-none{% endif %}">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Season start</label>
+                            {{ form.season_start }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Season end</label>
+                            {{ form.season_end }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Allergens (TC-015) -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Allergens</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Select all allergens this product contains (14 UK major allergens):</p>
+                    <div class="row">
+                        {% for checkbox in form.allergens %}
+                        <div class="col-md-4 col-sm-6 mb-2">
+                            <div class="form-check">
+                                {{ checkbox.tag }}
+                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                    {{ checkbox.choice_label }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality dates -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><h5 class="mb-0">Quality Information (Optional)</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Harvest date</label>
+                            {{ form.harvest_date }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Best before</label>
+                            {{ form.best_before }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> {% if object %}Save Changes{% else %}Add Product{% endif %}
+                </button>
+                <a href="{% url 'products:producer_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const statusSelect = document.getElementById('id_availability_status');
+    const seasonDates = document.getElementById('season-dates');
+
+    function toggleSeasonDates() {
+        if (statusSelect.value === 'in_season') {
+            seasonDates.classList.remove('d-none');
+        } else {
+            seasonDates.classList.add('d-none');
+        }
+    }
+
+    statusSelect.addEventListener('change', toggleSeasonDates);
+    toggleSeasonDates();
+</script>
+{% endblock %}

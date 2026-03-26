@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if selected_category %}{{ selected_category.name }} — {% endif %}Products — Bristol Food Network
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar filters -->
+    <div class="col-md-3 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-funnel"></i> Filter</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item {% if not selected_category and not in_season_only %}active{% endif %}">
+                        <a href="{% url 'products:product_list' %}" class="text-decoration-none {% if not selected_category and not in_season_only %}text-white{% endif %}">
+                            All Products
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if in_season_only %}active{% endif %}">
+                        <a href="{% url 'products:product_list' %}?in_season=1" class="text-decoration-none {% if in_season_only %}text-white{% endif %}">
+                            <i class="bi bi-sun text-warning"></i> In Season
+                        </a>
+                    </li>
+                </ul>
+                <div class="p-2">
+                    <small class="text-muted fw-bold px-2">Categories</small>
+                    <ul class="list-group list-group-flush">
+                        {% for cat in categories %}
+                        <li class="list-group-item py-1 {% if selected_category.slug == cat.slug %}active{% endif %}">
+                            <a href="{% url 'products:product_list' %}?category={{ cat.slug }}"
+                               class="text-decoration-none {% if selected_category.slug == cat.slug %}text-white{% endif %}">
+                                {{ cat.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product grid -->
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">
+                {% if selected_category %}{{ selected_category.name }}
+                {% elif in_season_only %}In Season
+                {% else %}All Products{% endif %}
+            </h4>
+            {% if user.is_authenticated and user.role == 'producer' %}
+                <a href="{% url 'products:product_create' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Add Product
+                </a>
+            {% endif %}
+        </div>
+
+        {% if page_obj %}
+            <div class="row g-3">
+                {% for product in page_obj %}
+                <div class="col-sm-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                            <img src="{% static 'images/no-image.svg' %}" class="card-img-top" alt="No image available" style="height: 180px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-1">
+                                {% if product.availability_status == 'in_season' %}
+                                    <span class="badge bg-success"><i class="bi bi-sun"></i> In Season</span>
+                                {% endif %}
+                                {% if product.is_organic %}
+                                    <span class="badge bg-success border border-success text-success" style="background-color: transparent !important; color: #198754 !important;">Organic</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="card-title mb-1">{{ product.name }}</h6>
+                            <small class="text-muted mb-2">{{ product.producer.business_name }}</small>
+                            <p class="card-text text-truncate text-muted small flex-grow-1">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <strong class="text-success">£{{ product.price }} <small class="text-muted fw-normal">{{ product.unit }}</small></strong>
+                                <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-success btn-sm">View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">Previous</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-basket text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">No products available at the moment.</p>
+                <a href="{% url 'products:product_list' %}" class="btn btn-outline-success">Browse all products</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

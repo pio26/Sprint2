@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}My Products — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">My Products</h2>
+        <small class="text-muted">{{ user.producer_profile.business_name }}</small>
+    </div>
+    <a href="{% url 'products:product_create' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Add New Product
+    </a>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <div class="fs-2 fw-bold text-success">{{ total }}</div>
+                <small class="text-muted">Total Products</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <div class="fs-2 fw-bold text-success">{{ in_stock }}</div>
+                <small class="text-muted">In Stock</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body">
+                <div class="fs-2 fw-bold text-danger">{{ out_of_stock }}</div>
+                <small class="text-muted">Out of Stock</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if products %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Availability</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <strong>{{ product.name }}</strong>
+                            {% if product.is_organic %}<span class="badge border border-success text-success ms-1">Organic</span>{% endif %}
+                        </td>
+                        <td>{{ product.category.name|default:"—" }}</td>
+                        <td>£{{ product.price }} <small class="text-muted">{{ product.unit }}</small></td>
+                        <td>
+                            {% if product.stock_quantity == 0 %}
+                                <span class="badge bg-danger">Out of stock</span>
+                            {% elif product.stock_quantity <= 5 %}
+                                <span class="badge bg-warning text-dark">{{ product.stock_quantity }} (Low)</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ product.stock_quantity }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if product.availability_status == 'in_season' %}
+                                <span class="badge bg-success">In Season</span>
+                            {% elif product.availability_status == 'out_of_season' %}
+                                <span class="badge bg-secondary">Out of Season</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">Year-Round</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-secondary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'products:product_edit' product.pk %}" class="btn btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'products:stock_update' product.pk %}" class="btn btn-outline-secondary" title="Update stock">
+                                    <i class="bi bi-box-seam"></i>
+                                </a>
+                                <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
+    <p class="text-muted mt-3">You haven't added any products yet.</p>
+    <a href="{% url 'products:product_create' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Add your first product
+    </a>
+</div>
+{% endif %}
+{% endblock %}
