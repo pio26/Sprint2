@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout — Bristol Food Network{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-bag-check"></i> Checkout</h2>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header fw-semibold">Delivery Details</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_delivery_address" class="form-label fw-semibold">Delivery Address</label>
+                        {{ form.delivery_address }}
+                        {% if form.delivery_address.errors %}
+                            <div class="text-danger small mt-1">{{ form.delivery_address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_delivery_date" class="form-label fw-semibold">Delivery Date</label>
+                        {{ form.delivery_date }}
+                        <div class="form-text">Must be at least 48 hours from now.</div>
+                        {% if form.delivery_date.errors %}
+                            <div class="text-danger small mt-1">{{ form.delivery_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_special_instructions" class="form-label fw-semibold">Special Instructions <span class="text-muted fw-normal">(optional)</span></label>
+                        {{ form.special_instructions }}
+                        {% if form.special_instructions.errors %}
+                            <div class="text-danger small mt-1">{{ form.special_instructions.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                        <i class="bi bi-lock"></i> Place Order
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-light fw-semibold">Order Summary</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr>
+                            <td>{{ item.product.name }} <span class="text-muted">×{{ item.quantity }}</span></td>
+                            <td class="text-end">£{{ item.line_total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td class="fw-semibold">Total</td>
+                            <td class="text-end fw-semibold">£{{ total }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card-footer text-muted small">
+                A 5% platform fee is included in your total.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
