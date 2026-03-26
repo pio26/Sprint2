@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+
+        <div class="d-flex align-items-center mb-4">
+            <div>
+                <h2 class="mb-0">My Profile</h2>
+                <span class="badge bg-{% if profile_user.role == 'producer' %}warning text-dark{% elif profile_user.role == 'customer' %}success{% else %}secondary{% endif %} mt-1">
+                    {{ profile_user.get_role_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Account Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{{ profile_user.email }}</dd>
+                    <dt class="col-sm-4">Member since</dt>
+                    <dd class="col-sm-8">{{ profile_user.date_joined|date:"d F Y" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        {% if form %}
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Edit Profile</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">First name</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Last name</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        {{ form.phone }}
+                    </div>
+
+                    {% if profile_user.role == 'producer' %}
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label">Business / Farm name</label>
+                            {{ form.business_name }}
+                            {% if form.business_name.errors %}
+                                <div class="text-danger small">{{ form.business_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Business address</label>
+                            {{ form.business_address }}
+                            {% if form.business_address.errors %}
+                                <div class="text-danger small">{{ form.business_address.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Postcode</label>
+                            {{ form.postcode }}
+                            {% if form.postcode.errors %}
+                                <div class="text-danger small">{{ form.postcode.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">About your farm / business</label>
+                            {{ form.description }}
+                        </div>
+                    {% else %}
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label">Delivery address</label>
+                            {{ form.delivery_address }}
+                            {% if form.delivery_address.errors %}
+                                <div class="text-danger small">{{ form.delivery_address.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Postcode</label>
+                            {{ form.postcode }}
+                            {% if form.postcode.errors %}
+                                <div class="text-danger small">{{ form.postcode.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
