@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Orders Dashboard — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-speedometer2"></i> Orders Dashboard</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'orders:settlements' %}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-cash-stack"></i> Payment Settlements
+        </a>
+        <a href="{% url 'orders:incoming_orders' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-list-ul"></i> All Orders
+        </a>
+    </div>
+</div>
+
+<!-- Stats cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="fs-1 fw-bold text-warning">{{ stats.pending }}</div>
+                <div class="text-muted">Pending</div>
+                <a href="{% url 'orders:incoming_orders' %}?status=pending" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="fs-1 fw-bold text-info">{{ stats.confirmed }}</div>
+                <div class="text-muted">Confirmed</div>
+                <a href="{% url 'orders:incoming_orders' %}?status=confirmed" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="fs-1 fw-bold text-primary">{{ stats.ready }}</div>
+                <div class="text-muted">Ready</div>
+                <a href="{% url 'orders:incoming_orders' %}?status=ready" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="fs-1 fw-bold text-success">{{ stats.delivered }}</div>
+                <div class="text-muted">Delivered</div>
+                <a href="{% url 'orders:incoming_orders' %}?status=delivered" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 bg-light">
+            <div class="card-body">
+                <p class="text-muted small mb-1">Gross Revenue (delivered)</p>
+                <h4 class="fw-bold mb-0">£{{ revenue }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-light">
+            <div class="card-body">
+                <p class="text-muted small mb-1">Platform Commission (5%)</p>
+                <h4 class="fw-bold mb-0 text-danger">— £{{ commission }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-success text-white">
+            <div class="card-body">
+                <p class="small mb-1 opacity-75">Your Net Payout</p>
+                <h4 class="fw-bold mb-0">£{{ net_payout }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent orders -->
+<div class="card">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>Recent Orders</span>
+        <a href="{% url 'orders:incoming_orders' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+    </div>
+    {% if recent_orders %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Delivery</th>
+                    <th class="text-center">Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                    <td class="font-monospace fw-semibold">{{ order.order_number }}</td>
+                    <td>{{ order.customer.get_full_name|default:order.customer.email }}</td>
+                    <td>{{ order.delivery_date|date:"d M Y" }}</td>
+                    <td class="text-center">
+                        {% if order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif order.status == 'confirmed' %}
+                            <span class="badge bg-info text-dark">Confirmed</span>
+                        {% elif order.status == 'ready' %}
+                            <span class="badge bg-primary">Ready</span>
+                        {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success">Delivered</span>
+                        {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'orders:order_detail' order_id=order.pk %}" class="btn btn-sm btn-outline-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted py-4">
+        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+        <p class="mt-2 mb-0">No orders yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

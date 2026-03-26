@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Incoming Orders — Bristol Food Network{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-box-seam"></i> Incoming Orders</h2>
+
+<!-- Status filter tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if not current_status %}active{% endif %}" href="{% url 'orders:incoming_orders' %}">All</a>
+    </li>
+    {% for value, label in status_choices %}
+    {% if value != 'delivered' and value != 'cancelled' %}
+    <li class="nav-item">
+        <a class="nav-link {% if current_status == value %}active{% endif %}"
+           href="{% url 'orders:incoming_orders' %}?status={{ value }}">
+            {{ label }}
+        </a>
+    </li>
+    {% endif %}
+    {% endfor %}
+    <li class="nav-item">
+        <a class="nav-link {% if current_status == 'delivered' %}active{% endif %}"
+           href="{% url 'orders:incoming_orders' %}?status=delivered">Delivered</a>
+    </li>
+</ul>
+
+{% if not orders %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+        <h5 class="mt-3 text-muted">No orders found</h5>
+    </div>
+{% else %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Delivery</th>
+                    <th class="text-center">Your Items</th>
+                    <th class="text-center">Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="font-monospace fw-semibold">{{ order.order_number }}</td>
+                    <td>{{ order.customer.get_full_name|default:order.customer.email }}</td>
+                    <td>{{ order.created_at|date:"d M Y" }}</td>
+                    <td>{{ order.delivery_date|date:"d M Y" }}</td>
+                    <td class="text-center">
+                        {{ order.items.count }}
+                    </td>
+                    <td class="text-center">
+                        {% if order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif order.status == 'confirmed' %}
+                            <span class="badge bg-info text-dark">Confirmed</span>
+                        {% elif order.status == 'ready' %}
+                            <span class="badge bg-primary">Ready</span>
+                        {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success">Delivered</span>
+                        {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'orders:order_detail' order_id=order.pk %}" class="btn btn-sm btn-outline-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}

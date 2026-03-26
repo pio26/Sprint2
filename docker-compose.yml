@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: bfn_db
+      POSTGRES_USER: bfn_user
+      POSTGRES_PASSWORD: bfn_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bfn_user -d bfn_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=db
+      - DATABASE_NAME=bfn_db
+      - DATABASE_USER=bfn_user
+      - DATABASE_PASSWORD=bfn_password
+      - DEBUG=True
+    restart: on-failure
+
+volumes:
+  postgres_data:
+  media_data:
