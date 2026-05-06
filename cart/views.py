@@ -308,25 +308,28 @@ def reorder(request, order_id):
 
 @customer_required
 def order_receipt(request, order_id):
-    order = get_object_or_404(Order, pk=order_id, customer=request.user)
-    lines = [
-        'Bristol Regional Food Network Receipt',
-        f'Order: {order.order_number}',
-        f'Date: {order.created_at:%d %b %Y}',
-        f'Status: {order.get_status_display()}',
-        '',
-        'Items:',
-    ]
-    for item in order.items.select_related('producer').all():
-        producer = item.producer.business_name if item.producer else 'Unknown producer'
-        lines.append(f'- {item.product_name} ({producer}) x{item.quantity}: £{item.line_total}')
-    lines.extend([
-        '',
-        f'Subtotal: £{order.total}',
-        f'Network commission included: £{order.commission_amount}',
-        f'Producer payment total: £{order.producer_payment}',
-    ])
-    return HttpResponse('\n'.join(lines), content_type='text/plain')
+    order = get_object_or_404(
+        Order.objects.prefetch_related(
+            'items__producer',
+            'items__product',
+            'producer_orders__producer',
+            'payment',
+        ),
+        pk=order_id,
+        customer=request.user,
+    )
+    grouped = {}
+    for item in order.items.all():
+        producer_name = item.producer.business_name if item.producer else 'Unknown'
+        if producer_name not in grouped:
+            grouped[producer_name] = {'items': [], 'subtotal': 0}
+        grouped[producer_name]['items'].append(item)
+        grouped[producer_name]['subtotal'] += item.line_total
+    return render(request, 'cart/order_receipt.html', {
+        'order': order,
+        'grouped': grouped,
+        'customer': request.user,
+    })
 
 
 @customer_required

@@ -64,9 +64,12 @@
                             <span class="badge bg-danger">Cancelled</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{% url 'cart:order_detail' order_id=order.pk %}" class="btn btn-sm btn-outline-secondary">
-                            View
+                    <td class="text-end" style="white-space:nowrap;">
+                        <a href="{% url 'cart:order_detail' order_id=order.pk %}" class="btn btn-sm btn-outline-secondary me-1">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="{% url 'cart:order_receipt' order_id=order.pk %}" class="btn btn-sm btn-success" target="_blank" title="Download PDF Receipt">
+                            <i class="bi bi-file-earmark-pdf-fill"></i> PDF
                         </a>
                     </td>
                 </tr>

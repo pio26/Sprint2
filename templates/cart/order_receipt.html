@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt {{ order.order_number }} — Bristol Food Network</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* ── Reset & base ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f0f4f0;
+            color: #1a2e1a;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        /* ── Print button bar ── */
+        .print-bar {
+            max-width: 860px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .print-bar a {
+            color: #2d6a2d;
+            text-decoration: none;
+            font-size: .9rem;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+        .print-bar a:hover { text-decoration: underline; }
+        .btn-print {
+            background: #2d6a2d;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: .6rem 1.6rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            transition: background .2s;
+        }
+        .btn-print:hover { background: #1e4d1e; }
+
+        /* ── Receipt card ── */
+        .receipt {
+            max-width: 860px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,.13);
+        }
+
+        /* ── Header band ── */
+        .receipt-header {
+            background: linear-gradient(135deg, #1e4d1e 0%, #2d6a2d 50%, #4caf50 100%);
+            color: #fff;
+            padding: 2.5rem 2.5rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .receipt-header::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.07);
+        }
+        .receipt-header::after {
+            content: '';
+            position: absolute;
+            bottom: -80px; left: -40px;
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.05);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .brand { display: flex; align-items: center; gap: .75rem; }
+        .brand-icon {
+            width: 52px; height: 52px;
+            background: rgba(255,255,255,.18);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem;
+        }
+        .brand-text h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.3px; }
+        .brand-text p { font-size: .78rem; opacity: .8; margin-top: .15rem; }
+        .receipt-badge {
+            background: rgba(255,255,255,.15);
+            border: 1.5px solid rgba(255,255,255,.35);
+            border-radius: 8px;
+            padding: .5rem 1.1rem;
+            text-align: center;
+        }
+        .receipt-badge span { display: block; font-size: .7rem; opacity: .75; text-transform: uppercase; letter-spacing: 1px; }
+        .receipt-badge strong { font-size: 1rem; }
+
+        .header-bottom {
+            margin-top: 1.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        .order-number { font-size: 2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+        .order-meta { font-size: .82rem; opacity: .8; margin-top: .35rem; }
+        .status-badge {
+            background: rgba(255,255,255,.2);
+            border: 1.5px solid rgba(255,255,255,.4);
+            border-radius: 20px;
+            padding: .4rem 1.2rem;
+            font-size: .85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        /* ── Body ── */
+        .receipt-body { padding: 2rem 2.5rem; }
+
+        /* ── Info grid ── */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .info-card {
+            background: #f8fdf8;
+            border: 1px solid #d4e8d4;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+        }
+        .info-card label {
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: #4caf50;
+            display: block;
+            margin-bottom: .3rem;
+        }
+        .info-card p { font-size: .9rem; color: #1a2e1a; line-height: 1.4; }
+
+        /* ── Section heading ── */
+        .section-heading {
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #2d6a2d;
+            border-bottom: 2px solid #e8f5e9;
+            padding-bottom: .5rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        /* ── Producer sections ── */
+        .producer-section { margin-bottom: 1.5rem; }
+        .producer-tag {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            border-radius: 0 8px 8px 0;
+            padding: .5rem .9rem;
+            font-size: .82rem;
+            font-weight: 700;
+            color: #1e4d1e;
+            margin-bottom: .75rem;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        /* ── Items table ── */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88rem;
+        }
+        .items-table thead th {
+            background: #f1f8f1;
+            color: #2d6a2d;
+            font-weight: 700;
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            padding: .6rem .9rem;
+            text-align: left;
+            border-bottom: 2px solid #c8e6c9;
+        }
+        .items-table thead th:last-child { text-align: right; }
+        .items-table tbody td {
+            padding: .65rem .9rem;
+            border-bottom: 1px solid #f0f7f0;
+            vertical-align: top;
+        }
+        .items-table tbody tr:last-child td { border-bottom: none; }
+        .items-table td.qty { color: #666; font-size: .82rem; }
+        .items-table td.price { text-align: right; font-weight: 600; color: #1e4d1e; white-space: nowrap; }
+        .item-name { font-weight: 600; color: #1a2e1a; }
+        .item-unit { font-size: .75rem; color: #888; margin-top: .1rem; }
+
+        /* ── Totals block ── */
+        .totals-block {
+            margin-top: 1.75rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .totals-table { width: 340px; }
+        .totals-table tr td { padding: .45rem 0; font-size: .9rem; }
+        .totals-table td:last-child { text-align: right; font-weight: 600; }
+        .totals-table .divider td { border-top: 1px solid #e0eee0; padding-top: .65rem; }
+        .totals-table .commission td { color: #888; font-size: .82rem; }
+        .totals-table .grand-total td {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1e4d1e;
+            border-top: 2.5px solid #4caf50;
+            padding-top: .75rem;
+        }
+        .totals-table .producer-payout td { font-size: .8rem; color: #555; }
+
+        /* ── Footer band ── */
+        .receipt-footer {
+            background: #f8fdf8;
+            border-top: 2px dashed #c8e6c9;
+            padding: 1.5rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .footer-note { font-size: .8rem; color: #555; max-width: 400px; line-height: 1.5; }
+        .footer-note strong { color: #2d6a2d; }
+        .receipt-qr {
+            width: 72px; height: 72px;
+            border: 2px solid #c8e6c9;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: .55rem;
+            color: #888;
+            text-align: center;
+            padding: .3rem;
+            gap: .15rem;
+        }
+        .receipt-qr i { font-size: 1.8rem; color: #4caf50; }
+
+        /* ── Tear-off perforation ── */
+        .perforation {
+            border: none;
+            border-top: 3px dashed #c8e6c9;
+            margin: 0;
+        }
+
+        /* ── Watermark on delivered ── */
+        .watermark-wrap { position: relative; }
+        .watermark {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 5rem;
+            font-weight: 900;
+            color: rgba(76, 175, 80, .06);
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            z-index: 0;
+        }
+
+        /* ── Print styles ── */
+        @media print {
+            @page {
+                size: A4;
+                margin: 10mm 12mm;
+            }
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+            }
+            .print-bar { display: none !important; }
+            .receipt {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                border: none !important;
+            }
+            .receipt-header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .info-card {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .receipt-body { padding: 1.5rem !important; }
+            .receipt-footer { padding: 1rem 1.5rem !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Action bar (hidden on print) -->
+<div class="print-bar">
+    <a href="{% url 'cart:order_history' %}">
+        <i class="bi bi-arrow-left"></i> Back to Orders
+    </a>
+    <button class="btn-print" onclick="window.print()">
+        <i class="bi bi-file-earmark-pdf"></i> Download / Print PDF
+    </button>
+</div>
+
+<!-- Receipt card -->
+<div class="receipt watermark-wrap">
+
+    {% if order.status == 'delivered' %}
+    <div class="watermark">PAID</div>
+    {% endif %}
+
+    <!-- ── Header ── -->
+    <div class="receipt-header">
+        <div class="header-top">
+            <div class="brand">
+                <div class="brand-icon"><i class="bi bi-basket2-fill"></i></div>
+                <div class="brand-text">
+                    <h1>Bristol Food Network</h1>
+                    <p>Bristol Regional Food Network — Digital Marketplace</p>
+                </div>
+            </div>
+            <div class="receipt-badge">
+                <span>Document type</span>
+                <strong>Official Receipt</strong>
+            </div>
+        </div>
+
+        <div class="header-bottom">
+            <div>
+                <div class="order-number">{{ order.order_number }}</div>
+                <div class="order-meta">
+                    Issued {{ order.created_at|date:"d F Y, H:i" }}
+                    &nbsp;&bull;&nbsp;
+                    Delivery {{ order.delivery_date|date:"d F Y" }}
+                </div>
+            </div>
+            <div class="status-badge">
+                {% if order.status == 'delivered' %}
+                    <i class="bi bi-check-circle-fill"></i>
+                {% elif order.status == 'pending' %}
+                    <i class="bi bi-hourglass-split"></i>
+                {% elif order.status == 'confirmed' %}
+                    <i class="bi bi-check2"></i>
+                {% elif order.status == 'ready' %}
+                    <i class="bi bi-box-seam"></i>
+                {% else %}
+                    <i class="bi bi-x-circle"></i>
+                {% endif %}
+                {{ order.get_status_display }}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Body ── -->
+    <div class="receipt-body">
+
+        <!-- Info grid -->
+        <div class="info-grid">
+            <div class="info-card">
+                <label><i class="bi bi-person"></i> Customer</label>
+                <p>{{ customer.get_full_name }}<br>{{ customer.email }}</p>
+            </div>
+            <div class="info-card">
+                <label><i class="bi bi-geo-alt"></i> Delivery Address</label>
+                <p>{{ order.delivery_address }}</p>
+            </div>
+            <div class="info-card">
+                <label><i class="bi bi-calendar-check"></i> Delivery Date</label>
+                <p>{{ order.delivery_date|date:"l, d F Y" }}</p>
+            </div>
+            {% if order.payment %}
+            <div class="info-card">
+                <label><i class="bi bi-credit-card"></i> Payment</label>
+                <p>{{ order.payment.get_payment_method_display|default:order.payment.payment_method|title }}<br>
+                   <span style="font-size:.78rem;color:#888;">Ref: {{ order.payment.transaction_id }}</span>
+                </p>
+            </div>
+            {% endif %}
+            {% if order.special_instructions %}
+            <div class="info-card" style="grid-column: 1 / -1;">
+                <label><i class="bi bi-chat-left-text"></i> Special Instructions</label>
+                <p>{{ order.special_instructions }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Items by producer -->
+        <div class="section-heading">
+            <i class="bi bi-bag-check"></i> Order Items
+        </div>
+
+        {% for producer_name, group in grouped.items %}
+        <div class="producer-section">
+            <div class="producer-tag">
+                <i class="bi bi-shop"></i> {{ producer_name }}
+            </div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width:45%">Product</th>
+                        <th>Unit Price</th>
+                        <th class="text-center">Qty</th>
+                        <th style="text-align:right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in group.items %}
+                    <tr>
+                        <td>
+                            <div class="item-name">{{ item.product_name }}</div>
+                            {% if item.product %}<div class="item-unit">{{ item.product.unit }}</div>{% endif %}
+                        </td>
+                        <td>£{{ item.price_at_time }}</td>
+                        <td class="qty" style="text-align:center">{{ item.quantity }}</td>
+                        <td class="price">£{{ item.line_total }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background:#f8fdf8;">
+                        <td colspan="3" style="text-align:right;font-size:.8rem;color:#555;padding:.5rem .9rem;">
+                            Producer subtotal
+                        </td>
+                        <td class="price" style="padding:.5rem .9rem;">£{{ group.subtotal }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+
+        <!-- Totals -->
+        <div class="totals-block">
+            <table class="totals-table">
+                <tr>
+                    <td>Order Subtotal</td>
+                    <td>£{{ order.total }}</td>
+                </tr>
+                <tr class="commission">
+                    <td><i class="bi bi-info-circle"></i> Network commission (5%)</td>
+                    <td>£{{ order.commission_amount }}</td>
+                </tr>
+                {% if order.payment %}
+                <tr class="producer-payout">
+                    <td>Producer payment (95%)</td>
+                    <td>£{{ order.producer_payment }}</td>
+                </tr>
+                {% endif %}
+                <tr class="divider grand-total">
+                    <td>Total Charged</td>
+                    <td>£{{ order.total }}</td>
+                </tr>
+            </table>
+        </div>
+
+    </div><!-- /receipt-body -->
+
+    <!-- ── Perforation ── -->
+    <hr class="perforation">
+
+    <!-- ── Footer ── -->
+    <div class="receipt-footer">
+        <div class="footer-note">
+            <strong>Bristol Regional Food Network</strong><br>
+            This is an official receipt for order <strong>{{ order.order_number }}</strong>.
+            Please retain this document for your records.
+            All prices include any applicable platform commission.
+            For queries contact us through the marketplace.
+        </div>
+        <div class="receipt-qr">
+            <i class="bi bi-qr-code"></i>
+            <span>{{ order.order_number }}</span>
+        </div>
+    </div>
+
+</div><!-- /receipt -->
+
+<script>
+    // Auto-open print dialog if ?print=1 is in URL
+    if (new URLSearchParams(window.location.search).get('print') === '1') {
+        window.addEventListener('load', () => setTimeout(() => window.print(), 400));
+    }
+</script>
+
+</body>
+</html>
