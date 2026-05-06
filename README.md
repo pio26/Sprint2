@@ -40,11 +40,17 @@ python manage.py seed_data
 
 ```bash
 docker compose up --build
-docker compose exec web python manage.py migrate
 docker compose exec web python manage.py seed_data
 ```
 
 Open `http://127.0.0.1:8000`.
+
+The Docker setup runs four containers:
+
+- `nginx`: reverse proxy exposed on port `8000`
+- `web`: Django/Gunicorn application
+- `db`: PostgreSQL database
+- `payment-mock`: sandbox payment service used by checkout
 
 ## Running Tests
 

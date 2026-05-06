@@ -12,6 +12,7 @@ from products.models import Product
 
 from .forms import CheckoutForm
 from .models import Cart, CartItem
+from .payments import process_payment
 
 
 @login_required
@@ -176,14 +177,20 @@ def checkout(request):
                                 ),
                             )
 
+                transaction_id, payment_status = process_payment(
+                    order.total,
+                    form.cleaned_data.get('test_payment_reference', ''),
+                    form.cleaned_data['payment_method'],
+                )
+
                 Payment.objects.create(
                     order=order,
                     amount=order.total,
                     commission=order.commission_amount,
                     producer_amount=order.producer_payment,
                     payment_method=form.cleaned_data['payment_method'],
-                    transaction_id=form.cleaned_data.get('test_payment_reference', ''),
-                    status='completed' if form.cleaned_data['payment_method'] == 'mock_card' else 'pending',
+                    transaction_id=transaction_id,
+                    status=payment_status,
                 )
 
                 if request.user.role == 'restaurant' and form.cleaned_data.get('make_recurring'):
