@@ -27,67 +27,94 @@
         <p class="text-muted">Settlements appear once orders containing your products are delivered.</p>
     </div>
 {% else %}
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Order #</th>
-                    <th>Date</th>
-                    <th class="text-center">Order Status</th>
-                    <th class="text-center">Payment</th>
-                    <th class="text-end">Your Subtotal</th>
-                    <th class="text-end">Commission (5%)</th>
-                    <th class="text-end fw-semibold">Net Payout</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in settlements %}
-                <tr>
-                    <td>
-                        <a href="{% url 'orders:order_detail' order_id=row.order.pk %}" class="font-monospace fw-semibold text-decoration-none">
-                            {{ row.order.order_number }}
-                        </a>
-                    </td>
-                    <td>{{ row.order.created_at|date:"d M Y" }}</td>
-                    <td class="text-center">
-                        {% if row.order.status == 'pending' %}
-                            <span class="badge bg-warning text-dark">Pending</span>
-                        {% elif row.order.status == 'confirmed' %}
-                            <span class="badge bg-info text-dark">Confirmed</span>
-                        {% elif row.order.status == 'ready' %}
-                            <span class="badge bg-primary">Ready</span>
-                        {% elif row.order.status == 'delivered' %}
-                            <span class="badge bg-success">Delivered</span>
-                        {% elif row.order.status == 'cancelled' %}
-                            <span class="badge bg-danger">Cancelled</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center">
-                        {% if row.payment_status == 'completed' %}
-                            <span class="badge bg-success">Paid</span>
-                        {% elif row.payment_status == 'pending' %}
-                            <span class="badge bg-warning text-dark">Pending</span>
-                        {% elif row.payment_status == 'failed' %}
-                            <span class="badge bg-danger">Failed</span>
-                        {% elif row.payment_status == 'refunded' %}
-                            <span class="badge bg-secondary">Refunded</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end">£{{ row.subtotal }}</td>
-                    <td class="text-end text-danger">— £{{ row.commission }}</td>
-                    <td class="text-end fw-semibold text-success">£{{ row.net }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot class="table-light fw-bold">
-                <tr>
-                    <td colspan="4" class="text-end">Totals</td>
-                    <td class="text-end">£{{ total_subtotal }}</td>
-                    <td class="text-end text-danger">— £{{ total_commission }}</td>
-                    <td class="text-end text-success">£{{ total_net }}</td>
-                </tr>
-            </tfoot>
-        </table>
+
+    {# ── Overall totals ── #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center border-0 bg-light">
+                <div class="card-body py-3">
+                    <div class="fs-4 fw-bold">£{{ total_subtotal }}</div>
+                    <div class="text-muted small">Gross Sales</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center border-0 bg-light">
+                <div class="card-body py-3">
+                    <div class="fs-4 fw-bold text-danger">— £{{ total_commission }}</div>
+                    <div class="text-muted small">Platform Commission (5%)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center border-0 bg-success bg-opacity-10">
+                <div class="card-body py-3">
+                    <div class="fs-4 fw-bold text-success">£{{ total_net }}</div>
+                    <div class="text-muted small">Total Net Payout</div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    {# ── Weekly breakdown ── #}
+    {% for week in weekly_groups %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <span class="fw-semibold"><i class="bi bi-calendar-week"></i> {{ week.label }}</span>
+            <span class="text-muted small">
+                £{{ week.subtotal }} gross &nbsp;|&nbsp;
+                <span class="text-danger">—£{{ week.commission }}</span> commission &nbsp;|&nbsp;
+                <span class="text-success fw-semibold">£{{ week.net }} net</span>
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th class="text-center">Order Status</th>
+                            <th class="text-center">Payment</th>
+                            <th class="text-end">Your Subtotal</th>
+                            <th class="text-end">Commission (5%)</th>
+                            <th class="text-end fw-semibold">Net Payout</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in week.settlements %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'orders:order_detail' order_id=row.order.pk %}" class="font-monospace fw-semibold text-decoration-none">
+                                    {{ row.order.order_number }}
+                                </a>
+                            </td>
+                            <td>{{ row.order.created_at|date:"d M Y" }}</td>
+                            <td class="text-center">
+                                {% if row.order.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>
+                                {% elif row.order.status == 'confirmed' %}<span class="badge bg-info text-dark">Confirmed</span>
+                                {% elif row.order.status == 'ready' %}<span class="badge bg-primary">Ready</span>
+                                {% elif row.order.status == 'delivered' %}<span class="badge bg-success">Delivered</span>
+                                {% elif row.order.status == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if row.payment_status == 'completed' %}<span class="badge bg-success">Paid</span>
+                                {% elif row.payment_status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>
+                                {% elif row.payment_status == 'failed' %}<span class="badge bg-danger">Failed</span>
+                                {% elif row.payment_status == 'refunded' %}<span class="badge bg-secondary">Refunded</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">£{{ row.subtotal }}</td>
+                            <td class="text-end text-danger">— £{{ row.commission }}</td>
+                            <td class="text-end fw-semibold text-success">£{{ row.net }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 {% endif %}
 {% endblock %}

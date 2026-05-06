@@ -1,4 +1,5 @@
 import csv
+from collections import defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib import messages
@@ -116,8 +117,21 @@ def payment_settlements(request):
         total_commission += commission
         total_net += net
 
+    # Group by ISO week for weekly settlement view
+    weeks = defaultdict(lambda: {'label': '', 'settlements': [], 'subtotal': Decimal('0.00'), 'commission': Decimal('0.00'), 'net': Decimal('0.00')})
+    for s in settlements:
+        iso = s['order'].created_at.isocalendar()
+        key = f'{iso[0]}-W{iso[1]:02d}'
+        weeks[key]['label'] = f'Week {iso[1]}, {iso[0]}'
+        weeks[key]['settlements'].append(s)
+        weeks[key]['subtotal'] += s['subtotal']
+        weeks[key]['commission'] += s['commission']
+        weeks[key]['net'] += s['net']
+    weekly_groups = [{'key': k, **v} for k, v in sorted(weeks.items(), reverse=True)]
+
     return render(request, 'orders/payment_settlements.html', {
         'settlements': settlements,
+        'weekly_groups': weekly_groups,
         'total_subtotal': total_subtotal,
         'total_commission': total_commission,
         'total_net': total_net,
@@ -248,6 +262,47 @@ def update_order_status(request, order_id):
     return redirect('orders:order_detail', order_id=order.pk)
 
 
+@producer_required
+def update_producer_delivery_date(request, order_id):
+    """Allow a producer to adjust the delivery date on their sub-order."""
+    if request.method != 'POST':
+        return redirect('orders:order_detail', order_id=order_id)
+
+    producer = request.user.producer_profile
+    producer_order = get_object_or_404(ProducerOrder, order_id=order_id, producer=producer)
+
+    from datetime import date as date_type
+    raw = request.POST.get('delivery_date', '')
+    try:
+        new_date = date_type.fromisoformat(raw)
+    except ValueError:
+        messages.error(request, 'Invalid date.')
+        return redirect('orders:order_detail', order_id=order_id)
+
+    from django.utils import timezone
+    from datetime import timedelta
+    min_date = (timezone.now() + timedelta(hours=48)).date()
+    if new_date < min_date:
+        messages.error(request, 'Delivery date must be at least 48 hours from now.')
+        return redirect('orders:order_detail', order_id=order_id)
+
+    producer_order.delivery_date = new_date
+    producer_order.save(update_fields=['delivery_date', 'updated_at'])
+
+    Notification.objects.create(
+        user=producer_order.order.customer,
+        title='Delivery date updated',
+        message=(
+            f'{producer.business_name} updated your delivery date for order '
+            f'{producer_order.order.order_number} to {new_date.strftime("%d %b %Y")}.'
+        ),
+        category='order',
+        related_order=producer_order.order,
+    )
+    messages.success(request, f'Delivery date updated to {new_date.strftime("%d %b %Y")}.')
+    return redirect('orders:order_detail', order_id=order_id)
+
+
 @login_required
 def notifications(request):
     if request.method == 'POST':
@@ -261,9 +316,28 @@ def notifications(request):
 def commission_report(request):
     orders = _commission_orders(request)
     rows, totals = _commission_rows(orders)
+
+    # Monthly breakdown
+    monthly = defaultdict(lambda: {'label': '', 'commission': Decimal('0.00'), 'subtotal': Decimal('0.00'), 'producer_payment': Decimal('0.00'), 'orders': set()})
+    for row in rows:
+        key = row['order'].created_at.strftime('%Y-%m')
+        label = row['order'].created_at.strftime('%B %Y')
+        monthly[key]['label'] = label
+        monthly[key]['commission'] += row['commission']
+        monthly[key]['subtotal'] += row['subtotal']
+        monthly[key]['producer_payment'] += row['producer_payment']
+        monthly[key]['orders'].add(row['order'].pk)
+    monthly_summary = [
+        {'key': k, 'label': v['label'], 'commission': v['commission'],
+         'subtotal': v['subtotal'], 'producer_payment': v['producer_payment'],
+         'order_count': len(v['orders'])}
+        for k, v in sorted(monthly.items(), reverse=True)
+    ]
+
     return render(request, 'orders/commission_report.html', {
         'rows': rows,
         'totals': totals,
+        'monthly_summary': monthly_summary,
         'filters': {
             'start': request.GET.get('start', ''),
             'end': request.GET.get('end', ''),

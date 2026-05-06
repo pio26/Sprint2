@@ -37,6 +37,7 @@
     </div>
 </form>
 
+{# ── YTD totals ── #}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="card text-center"><div class="card-body"><div class="fs-4 fw-bold">{{ totals.orders }}</div><small class="text-muted">Orders</small></div></div></div>
     <div class="col-md-3"><div class="card text-center"><div class="card-body"><div class="fs-4 fw-bold">£{{ totals.order_total }}</div><small class="text-muted">Order Value</small></div></div></div>
@@ -44,6 +45,46 @@
     <div class="col-md-3"><div class="card text-center"><div class="card-body"><div class="fs-4 fw-bold text-success">£{{ totals.producer_payment }}</div><small class="text-muted">Producer Payments</small></div></div></div>
 </div>
 
+{# ── Monthly summary ── #}
+{% if monthly_summary %}
+<h5 class="mb-3"><i class="bi bi-calendar3"></i> Monthly Summary</h5>
+<div class="table-responsive mb-4">
+    <table class="table table-sm table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Month</th>
+                <th class="text-end">Orders</th>
+                <th class="text-end">Gross Sales</th>
+                <th class="text-end text-danger">Commission</th>
+                <th class="text-end text-success">Producer Payments</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in monthly_summary %}
+            <tr>
+                <td>{{ m.label }}</td>
+                <td class="text-end">{{ m.order_count }}</td>
+                <td class="text-end">£{{ m.subtotal }}</td>
+                <td class="text-end text-danger">£{{ m.commission }}</td>
+                <td class="text-end text-success fw-semibold">£{{ m.producer_payment }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="table-light fw-bold">
+            <tr>
+                <td>YTD Total</td>
+                <td class="text-end">{{ totals.orders }}</td>
+                <td class="text-end">£{{ totals.subtotal }}</td>
+                <td class="text-end text-danger">£{{ totals.commission }}</td>
+                <td class="text-end text-success">£{{ totals.producer_payment }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% endif %}
+
+{# ── Order-level detail ── #}
+<h5 class="mb-3"><i class="bi bi-list-ul"></i> Order Detail</h5>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead class="table-light">

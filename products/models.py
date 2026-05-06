@@ -93,6 +93,10 @@ class Product(models.Model):
     season_end = models.DateField(null=True, blank=True)
 
     allergens = models.JSONField(default=list, blank=True)
+    allergens_declared = models.BooleanField(
+        default=False,
+        help_text='Tick to confirm allergen information has been reviewed and is complete for this product.',
+    )
 
     is_organic = models.BooleanField(default=False)
     harvest_date = models.DateField(null=True, blank=True)
@@ -128,6 +132,12 @@ class Product(models.Model):
             return False
         if self.availability_status == 'out_of_season':
             return False
+        if self.availability_status == 'in_season':
+            today = timezone.now().date()
+            if self.season_start and today < self.season_start:
+                return False
+            if self.season_end and today > self.season_end:
+                return False
         return True
 
     @property
@@ -158,6 +168,23 @@ class Product(models.Model):
 
     def food_miles_from(self, customer_postcode):
         return postcode_distance_miles(customer_postcode, self.producer.postcode)
+
+
+class ProductStockHistory(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_history')
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    previous_quantity = models.PositiveIntegerField()
+    new_quantity = models.PositiveIntegerField()
+    note = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.product.name}: {self.previous_quantity} → {self.new_quantity}'
 
 
 class Recipe(models.Model):
@@ -204,6 +231,8 @@ class ProductReview(models.Model):
     text = models.TextField()
     is_anonymous = models.BooleanField(default=False)
     verified_purchase = models.BooleanField(default=True)
+    producer_response = models.TextField(blank=True)
+    producer_response_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

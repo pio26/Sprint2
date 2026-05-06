@@ -53,6 +53,20 @@
                         <p class="mb-0">{{ order.special_instructions }}</p>
                     </div>
                     {% endif %}
+                    {% with profile=order.customer.customer_profile %}
+                    {% if profile.account_type == 'community_group' or profile.account_type == 'restaurant' %}
+                    <div class="col-12">
+                        <div class="alert alert-secondary py-2 mb-0">
+                            <strong class="small">Institutional Buyer:</strong>
+                            {% if profile.organization_name %} {{ profile.organization_name }}{% endif %}
+                            {% if profile.organization_type %} ({{ profile.organization_type }}){% endif %}
+                            {% if profile.payment_terms %}
+                            — <span class="text-muted">Payment terms: {{ profile.payment_terms }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
                 </div>
             </div>
         </div>
@@ -114,6 +128,18 @@
                 {% else %}
                     <p class="text-muted small">No status transitions available for this order.</p>
                 {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header fw-semibold">Adjust Your Delivery Date</div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">Your sub-order delivery date: <strong>{{ producer_order.delivery_date|date:"d M Y" }}</strong></p>
+                <form method="post" action="{% url 'orders:update_delivery_date' order_id=order.pk %}">
+                    {% csrf_token %}
+                    <input type="date" name="delivery_date" value="{{ producer_order.delivery_date|date:'Y-m-d' }}" class="form-control form-control-sm mb-2">
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">Update Date</button>
+                </form>
             </div>
         </div>
 

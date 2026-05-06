@@ -14,15 +14,22 @@ from .forms import (
     SurplusForm,
     UK_ALLERGENS,
 )
-from .models import FarmStory, Product, ProductReview, Recipe, Category
+from .models import FarmStory, Product, ProductReview, ProductStockHistory, Recipe, Category
 
 
 def _available_products():
-    return Product.objects.filter(
-        stock_quantity__gt=0
-    ).exclude(
-        availability_status='out_of_season'
-    ).select_related('producer', 'category')
+    from django.utils import timezone as _tz
+    today = _tz.now().date()
+    return (
+        Product.objects
+        .filter(stock_quantity__gt=0)
+        .exclude(availability_status='out_of_season')
+        # season hasn't started yet
+        .exclude(availability_status='in_season', season_start__gt=today)
+        # season already ended
+        .exclude(availability_status='in_season', season_end__lt=today, season_end__isnull=False)
+        .select_related('producer', 'category')
+    )
 
 
 def _customer_postcode(request):
@@ -190,6 +197,7 @@ def product_edit(request, pk):
             'season_start': product.season_start,
             'season_end': product.season_end,
             'allergens': product.allergens,
+            'allergens_declared': product.allergens_declared,
             'is_organic': product.is_organic,
             'harvest_date': product.harvest_date,
             'best_before': product.best_before,
@@ -237,8 +245,15 @@ def stock_update(request, pk):
     if request.method == 'POST':
         form = StockUpdateForm(request.POST)
         if form.is_valid():
+            previous_quantity = product.stock_quantity
             product.stock_quantity = form.cleaned_data['stock_quantity']
             product.save()
+            ProductStockHistory.objects.create(
+                product=product,
+                changed_by=request.user,
+                previous_quantity=previous_quantity,
+                new_quantity=product.stock_quantity,
+            )
             if not product.is_low_stock:
                 Notification.objects.filter(
                     user=request.user,
@@ -275,10 +290,18 @@ def mark_surplus(request, pk):
             product.surplus_note = form.cleaned_data.get('note', '')
             product.save()
 
-            for user in User.objects.filter(role__in=['customer', 'community', 'restaurant']):
+            from orders.models import Order as _Order
+            previous_customer_ids = (
+                _Order.objects
+                .filter(items__producer=product.producer)
+                .values_list('customer_id', flat=True)
+                .distinct()
+            )
+            notified_users = User.objects.filter(pk__in=previous_customer_ids)
+            for user in notified_users:
                 Notification.objects.create(
                     user=user,
-                    title='Surplus deal available',
+                    title='Surplus deal from a producer you\'ve ordered from',
                     message=f'{product.name} is now {product.surplus_discount_percent}% off from {product.producer.business_name}.',
                     category='surplus',
                     related_product=product,
@@ -288,6 +311,29 @@ def mark_surplus(request, pk):
     else:
         form = SurplusForm()
     return render(request, 'products/surplus_form.html', {'form': form, 'product': product})
+
+
+@producer_required
+def respond_to_review(request, review_id):
+    """Allow a producer to post a response to a review of their product."""
+    if request.method != 'POST':
+        return redirect('products:producer_dashboard')
+
+    review = get_object_or_404(
+        ProductReview,
+        pk=review_id,
+        product__producer=request.user.producer_profile,
+    )
+    response_text = request.POST.get('producer_response', '').strip()
+    if response_text:
+        from django.utils import timezone as tz
+        review.producer_response = response_text
+        review.producer_response_at = tz.now()
+        review.save(update_fields=['producer_response', 'producer_response_at'])
+        messages.success(request, 'Your response has been published.')
+    else:
+        messages.error(request, 'Response cannot be empty.')
+    return redirect('products:product_detail', pk=review.product_id)
 
 
 @producer_required

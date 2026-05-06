@@ -160,6 +160,7 @@ class AssessmentTestCaseCoverage(TestCase):
             'allergens': ['Eggs'],
             'is_organic': 'on',
             'harvest_date': future_date(0).isoformat(),
+            'allergens_declared': 'on',
         })
         product = Product.objects.get(name='Organic Free Range Eggs')
         self.assertRedirects(response, reverse('products:product_detail', args=[product.pk]))
@@ -336,11 +337,20 @@ class AssessmentTestCaseCoverage(TestCase):
         self.assertContains(response, 'Fresh Apples')
 
     def test_tc016_seasonal_availability_complete(self):
-        """TC-016: seasonal settings show badges, dates and block out-of-season products."""
+        """TC-016: seasonal settings show badges, dates and block out-of-season and not-yet-in-season products."""
         _, producer = make_producer()
+        # Season already started (past) and ends in the future — available now
         strawberries = make_product(
             producer,
             name='Strawberries',
+            availability_status='in_season',
+            season_start=future_date(-30),
+            season_end=future_date(60),
+        )
+        # Season hasn't started yet — should be unavailable
+        early_crop = make_product(
+            producer,
+            name='Early Crop',
             availability_status='in_season',
             season_start=future_date(30),
             season_end=future_date(90),
@@ -351,6 +361,7 @@ class AssessmentTestCaseCoverage(TestCase):
         response = self.client.get(reverse('products:product_list'))
         self.assertContains(response, 'Strawberries')
         self.assertNotContains(response, 'Out Fruit')
+        self.assertNotContains(response, 'Early Crop')
 
     def test_tc017_community_bulk_order_complete(self):
         """TC-017: community groups register distinctly and can place large multi-producer orders."""

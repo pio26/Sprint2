@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, FarmStory, Product, ProductReview, Recipe
+from .models import Category, FarmStory, Product, ProductReview, ProductStockHistory, Recipe
 
 
 @admin.register(Category)
@@ -47,3 +47,11 @@ class ProductReviewAdmin(admin.ModelAdmin):
     list_display = ['product', 'customer', 'rating', 'verified_purchase', 'created_at']
     list_filter = ['rating', 'verified_purchase']
     search_fields = ['product__name', 'customer__email', 'title', 'text']
+
+
+@admin.register(ProductStockHistory)
+class ProductStockHistoryAdmin(admin.ModelAdmin):
+    list_display = ['product', 'previous_quantity', 'new_quantity', 'changed_by', 'created_at']
+    list_filter = ['product__producer']
+    search_fields = ['product__name', 'changed_by__email']
+    readonly_fields = ['product', 'changed_by', 'previous_quantity', 'new_quantity', 'note', 'created_at']

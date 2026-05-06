@@ -64,6 +64,11 @@ class ProductForm(forms.Form):
         required=False,
         widget=forms.CheckboxSelectMultiple()
     )
+    allergens_declared = forms.BooleanField(
+        required=True,
+        label='I confirm allergen information is complete for this product (select all that apply above, or confirm none apply)',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
     is_organic = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
@@ -93,6 +98,7 @@ class ProductForm(forms.Form):
         instance.season_start = data.get('season_start')
         instance.season_end = data.get('season_end')
         instance.allergens = data.get('allergens', [])
+        instance.allergens_declared = data.get('allergens_declared', False)
         instance.is_organic = data.get('is_organic', False)
         instance.harvest_date = data.get('harvest_date')
         instance.best_before = data.get('best_before')

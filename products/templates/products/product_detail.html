@@ -209,6 +209,20 @@
                         · {{ review.created_at|date:"d M Y" }}
                         {% if review.verified_purchase %}· Verified purchase{% endif %}
                     </small>
+                    {% if review.producer_response %}
+                    <div class="mt-2 ps-3 border-start border-success">
+                        <small class="text-muted fw-semibold"><i class="bi bi-shop"></i> Producer response · {{ review.producer_response_at|date:"d M Y" }}</small>
+                        <p class="mb-0 small">{{ review.producer_response }}</p>
+                    </div>
+                    {% elif user.is_authenticated and user.role == 'producer' and product.producer.user == user %}
+                    <form method="post" action="{% url 'products:respond_to_review' review.pk %}" class="mt-2">
+                        {% csrf_token %}
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="producer_response" class="form-control form-control-sm" placeholder="Reply to this review…" required>
+                            <button class="btn btn-outline-success btn-sm" type="submit">Reply</button>
+                        </div>
+                    </form>
+                    {% endif %}
                 </div>
             {% endfor %}
         {% else %}
