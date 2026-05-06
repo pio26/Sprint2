@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} — Bristol Food Network{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'products:product_list' %}">Products</a></li>
+        {% if product.category %}
+            <li class="breadcrumb-item"><a href="{% url 'products:products_by_category' product.category.slug %}">{{ product.category.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ product.name }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Product image -->
+    <div class="col-md-5">
+        {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm">
+        {% else %}
+            <img src="{% static 'images/no-image.svg' %}" alt="No image available" class="img-fluid rounded shadow-sm" style="width: 100%; height: 350px; object-fit: cover;">
+        {% endif %}
+    </div>
+
+    <!-- Product info -->
+    <div class="col-md-7">
+        <div class="mb-2">
+            {% if product.availability_status == 'in_season' %}
+                <span class="badge bg-success fs-6"><i class="bi bi-sun"></i> In Season</span>
+            {% elif product.availability_status == 'out_of_season' %}
+                <span class="badge bg-secondary fs-6">Out of Season</span>
+            {% endif %}
+            {% if product.is_organic %}
+                <span class="badge bg-success border border-success" style="background-color: transparent !important; color: #198754 !important; border-color: #198754 !important;">
+                    <i class="bi bi-leaf"></i> Organic
+                </span>
+            {% endif %}
+            {% if product.is_surplus_active %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-tags"></i> {{ product.surplus_discount_percent }}% Surplus Deal</span>
+            {% endif %}
+        </div>
+
+        <h1 class="h2 mb-1">{{ product.name }}</h1>
+        <p class="text-muted mb-3">
+            <i class="bi bi-shop"></i>
+            <a href="{% url 'products:producer_profile' product.producer.pk %}" class="text-decoration-none text-muted">{{ product.producer.business_name }}</a>
+            &mdash; {{ product.producer.postcode }}
+        </p>
+
+        <div class="fs-3 text-success fw-bold mb-1">
+            {% if product.is_surplus_active %}
+                <span class="text-muted text-decoration-line-through fs-5">£{{ product.price }}</span>
+                £{{ product.effective_price }}
+            {% else %}
+                £{{ product.price }}
+            {% endif %}
+            <small class="fs-6 text-muted fw-normal">{{ product.unit }}</small>
+        </div>
+        {% if product.is_surplus_active and product.surplus_note %}
+            <p class="text-warning-emphasis small mb-2">{{ product.surplus_note }}</p>
+        {% endif %}
+
+        {% if food_miles is not None %}
+            <p class="text-muted small mb-2">
+                <i class="bi bi-geo-alt"></i> {{ food_miles }} food miles from your postcode
+            </p>
+        {% endif %}
+
+        {% if average_rating %}
+            <p class="text-muted small mb-2">
+                <i class="bi bi-star-fill text-warning"></i> {{ average_rating }} average rating from {{ reviews|length }} review{{ reviews|length|pluralize }}
+            </p>
+        {% endif %}
+
+        {% if product.season_start and product.season_end %}
+            <p class="text-muted small mb-3">
+                <i class="bi bi-calendar3"></i>
+                Available: {{ product.season_start|date:"F" }} – {{ product.season_end|date:"F" }}
+            </p>
+        {% endif %}
+
+        <p class="mb-4">{{ product.description }}</p>
+
+        <!-- Stock & add to cart -->
+        {% if product.is_available %}
+            <div class="mb-3">
+                <span class="badge bg-success"><i class="bi bi-check-circle"></i> In Stock ({{ product.stock_quantity }} available)</span>
+            </div>
+            {% if user.is_authenticated and user.role == 'customer' %}
+                <form action="{% url 'cart:add_to_cart' product.pk %}" method="post" class="d-flex align-items-center gap-2">
+                    {% csrf_token %}
+                    <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}"
+                           class="form-control" style="width: 80px;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-cart-plus"></i> Add to Cart
+                    </button>
+                </form>
+            {% elif not user.is_authenticated %}
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-success">
+                    <i class="bi bi-box-arrow-in-right"></i> Log in to purchase
+                </a>
+            {% endif %}
+        {% else %}
+            <span class="badge bg-danger fs-6">
+                {% if product.availability_status == 'out_of_season' %}Out of Season{% else %}Out of Stock{% endif %}
+            </span>
+        {% endif %}
+
+        <!-- Producer actions -->
+        {% if user.is_authenticated and user.role == 'producer' and product.producer.user == user %}
+            <div class="mt-4 pt-3 border-top">
+                <a href="{% url 'products:product_edit' product.pk %}" class="btn btn-outline-primary btn-sm me-2">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <a href="{% url 'products:stock_update' product.pk %}" class="btn btn-outline-secondary btn-sm me-2">
+                    <i class="bi bi-box-seam"></i> Update Stock
+                </a>
+                <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Delete
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if recipes %}
+<div class="card mt-4 shadow-sm">
+    <div class="card-header"><h5 class="mb-0"><i class="bi bi-journal-text"></i> Recipe Suggestions</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for recipe in recipes %}
+            <div class="col-md-6">
+                <h6 class="mb-1">{{ recipe.title }}</h6>
+                <p class="text-muted small mb-1">{{ recipe.description }}</p>
+                {% if recipe.seasonal_tag %}<span class="badge bg-light text-dark border">{{ recipe.seasonal_tag }}</span>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Allergen section (TC-015) -->
+<div class="card mt-4 shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Allergen Information</h5>
+    </div>
+    <div class="card-body">
+        {% if product.allergens %}
+            <p class="text-muted small mb-2">This product contains the following allergens:</p>
+            <div>
+                {% for allergen in product.allergens %}
+                    <span class="badge bg-danger me-1 mb-1 fs-6">
+                        <i class="bi bi-exclamation-circle"></i> {{ allergen }}
+                    </span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> No common allergens</span>
+        {% endif %}
+        <p class="text-muted small mt-3 mb-0">
+            Always check with the producer if you have specific dietary requirements.
+            This information is based on 14 UK major allergens.
+        </p>
+    </div>
+</div>
+
+<!-- Quality info -->
+{% if product.harvest_date or product.best_before %}
+<div class="card mt-3 shadow-sm">
+    <div class="card-header"><h6 class="mb-0">Quality Information</h6></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            {% if product.harvest_date %}
+                <dt class="col-sm-4">Harvest date</dt>
+                <dd class="col-sm-8">{{ product.harvest_date|date:"d F Y" }}</dd>
+            {% endif %}
+            {% if product.best_before %}
+                <dt class="col-sm-4">Best before</dt>
+                <dd class="col-sm-8">{{ product.best_before|date:"d F Y" }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mt-4 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-star"></i> Customer Reviews</h5>
+        {% if review_order_item %}
+            <a href="{% url 'products:write_review' review_order_item.pk %}" class="btn btn-sm btn-outline-success">
+                Write Review
+            </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if reviews %}
+            {% for review in reviews %}
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ review.title }}</strong>
+                        <span class="text-warning">{{ review.rating }} / 5</span>
+                    </div>
+                    <p class="mb-1">{{ review.text }}</p>
+                    <small class="text-muted">
+                        {% if review.is_anonymous %}Anonymous customer{% else %}{{ review.customer.first_name|default:"Customer" }}{% endif %}
+                        · {{ review.created_at|date:"d M Y" }}
+                        {% if review.verified_purchase %}· Verified purchase{% endif %}
+                    </small>
+                    {% if review.producer_response %}
+                    <div class="mt-2 ps-3 border-start border-success">
+                        <small class="text-muted fw-semibold"><i class="bi bi-shop"></i> Producer response · {{ review.producer_response_at|date:"d M Y" }}</small>
+                        <p class="mb-0 small">{{ review.producer_response }}</p>
+                    </div>
+                    {% elif user.is_authenticated and user.role == 'producer' and product.producer.user == user %}
+                    <form method="post" action="{% url 'products:respond_to_review' review.pk %}" class="mt-2">
+                        {% csrf_token %}
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="producer_response" class="form-control form-control-sm" placeholder="Reply to this review…" required>
+                            <button class="btn btn-outline-success btn-sm" type="submit">Reply</button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted mb-0">No reviews yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

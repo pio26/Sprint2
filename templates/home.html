@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Bristol Regional Food Network — Local Food, Delivered Fresh{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 text-center bg-light rounded-3 mb-4">
+    <i class="bi bi-basket2-fill text-success" style="font-size: 3rem;"></i>
+    <h1 class="display-5 fw-bold mt-3">Bristol Regional Food Network</h1>
+    <p class="col-lg-8 mx-auto lead text-muted">
+        Fresh, local food from producers within 20 miles of Bristol.
+        Support your local farmers and enjoy seasonal produce delivered to your door.
+    </p>
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a href="{% url 'products:product_list' %}" class="btn btn-success btn-lg px-4">
+            <i class="bi bi-shop"></i> Browse Products
+        </a>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'accounts:register_customer' %}" class="btn btn-outline-success btn-lg px-4">
+                <i class="bi bi-person-plus"></i> Join as Customer
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <i class="bi bi-geo-alt-fill text-success" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">Locally Sourced</h5>
+                <p class="card-text text-muted">All producers are within 20 miles of Bristol, ensuring freshness and supporting the local economy.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <i class="bi bi-calendar2-check text-success" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">Seasonal Produce</h5>
+                <p class="card-text text-muted">Shop what's in season for the best flavour and value. Our producers update availability throughout the year.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">Allergen Information</h5>
+                <p class="card-text text-muted">Full allergen details on every product so you can shop with confidence. 14 UK major allergens listed.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

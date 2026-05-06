@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search{% if query %}: "{{ query }}"{% endif %} — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Allergen filter sidebar (TC-015) -->
+    <div class="col-md-3 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-shield-check"></i> Exclude Allergens</h6>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'products:product_search' %}">
+                    <input type="hidden" name="q" value="{{ query }}">
+                    {% for allergen in uk_allergens %}
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" name="allergen_exclude"
+                               value="{{ allergen }}" id="allergen_{{ forloop.counter }}"
+                               {% if allergen in allergen_excludes %}checked{% endif %}>
+                        <label class="form-check-label small" for="allergen_{{ forloop.counter }}">{{ allergen }}</label>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-outline-success btn-sm mt-2 w-100">Apply Filter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="col-md-9">
+        <div class="mb-3">
+            {% if query %}
+                <h4>Results for "<strong>{{ query }}</strong>"</h4>
+            {% else %}
+                <h4>All Products</h4>
+            {% endif %}
+            <p class="text-muted">{{ products|length }} product{{ products|length|pluralize }} found</p>
+        </div>
+
+        {% if allergen_excludes %}
+            <div class="mb-3">
+                <small class="text-muted">Excluding allergens: </small>
+                {% for allergen in allergen_excludes %}
+                    <span class="badge bg-danger me-1">{{ allergen }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if products %}
+            <div class="row g-3">
+                {% for product in products %}
+                <div class="col-sm-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 160px; object-fit: cover;">
+                        {% else %}
+                            <img src="{% static 'images/no-image.svg' %}" class="card-img-top" alt="No image available" style="height: 160px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-1">
+                                {% if product.availability_status == 'in_season' %}
+                                    <span class="badge bg-success"><i class="bi bi-sun"></i> In Season</span>
+                                {% endif %}
+                                {% if product.is_organic %}
+                                    <span class="badge border border-success text-success">Organic</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="card-title mb-1">{{ product.name }}</h6>
+                            <small class="text-muted mb-2">{{ product.producer.business_name }}</small>
+                            <p class="card-text text-truncate text-muted small flex-grow-1">{{ product.description }}</p>
+                            {% if product.allergens %}
+                                <div class="mb-2">
+                                    {% for allergen in product.allergens|slice:":3" %}
+                                        <span class="badge bg-danger" style="font-size: 0.65rem;">{{ allergen }}</span>
+                                    {% endfor %}
+                                    {% if product.allergens|length > 3 %}
+                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">+{{ product.allergens|length|add:"-3" }} more</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <strong class="text-success">
+                                    {% if product.is_surplus_active %}
+                                        <span class="text-muted text-decoration-line-through small">£{{ product.price }}</span>
+                                        £{{ product.effective_price }}
+                                    {% else %}
+                                        £{{ product.price }}
+                                    {% endif %}
+                                    <small class="text-muted fw-normal">{{ product.unit }}</small>
+                                </strong>
+                                <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-success btn-sm">View</a>
+                            </div>
+                            {% if product.food_miles is not None %}
+                                <small class="text-muted mt-2"><i class="bi bi-geo-alt"></i> {{ product.food_miles }} food miles</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">
+                    {% if query %}No products found for "{{ query }}".{% else %}No products available.{% endif %}
+                </p>
+                <a href="{% url 'products:product_list' %}" class="btn btn-outline-success">Browse all products</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

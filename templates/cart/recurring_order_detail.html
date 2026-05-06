@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ template.name }} — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">{{ template.name }}</h2>
+    <a href="{% url 'cart:recurring_orders' %}" class="btn btn-outline-secondary btn-sm">Back</a>
+</div>
+
+<form method="post" class="card shadow-sm">
+    {% csrf_token %}
+    <div class="card-body">
+        <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if template.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">Active</label>
+        </div>
+        <p class="text-muted">{{ template.get_frequency_display }} · Next delivery {{ template.next_delivery_date }} · Delivery day {{ template.get_delivery_weekday_display }}</p>
+
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Producer</th>
+                    <th style="width: 140px;">Quantity</th>
+                    <th class="text-end">Line total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in template.items.all %}
+                <tr>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.producer.business_name }}</td>
+                    <td><input type="number" min="1" name="quantity_{{ item.pk }}" value="{{ item.quantity }}" class="form-control"></td>
+                    <td class="text-end">£{{ item.line_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mb-3">
+            <label class="form-label">Special instructions</label>
+            <textarea name="special_instructions" class="form-control" rows="3">{{ template.special_instructions }}</textarea>
+        </div>
+        <button class="btn btn-success" type="submit">Save Changes</button>
+    </div>
+</form>
+{% endblock %}

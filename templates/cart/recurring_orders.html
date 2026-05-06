@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Recurring Orders — Bristol Food Network{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-arrow-repeat"></i> Recurring Orders</h2>
+
+{% if templates %}
+<div class="list-group">
+    {% for template in templates %}
+    <a href="{% url 'cart:recurring_order_detail' recurring_id=template.pk %}" class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between">
+            <strong>{{ template.name }}</strong>
+            <span class="badge {% if template.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if template.is_active %}Active{% else %}Paused{% endif %}
+            </span>
+        </div>
+        <small class="text-muted">{{ template.get_frequency_display }} · Next delivery {{ template.next_delivery_date }} · {{ template.items.count }} item{{ template.items.count|pluralize }}</small>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-arrow-repeat text-muted" style="font-size: 3rem;"></i>
+    <h5 class="mt-3 text-muted">No recurring orders yet</h5>
+    <a href="{% url 'products:product_list' %}" class="btn btn-success mt-2">Build an order</a>
+</div>
+{% endif %}
+{% endblock %}

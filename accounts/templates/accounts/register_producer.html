@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Register as Producer — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white text-center py-3">
+                <h4 class="mb-0"><i class="bi bi-shop"></i> Register Your Farm / Business</h4>
+            </div>
+            <div class="card-body p-4">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <h6 class="text-muted mb-3">Contact Person</h6>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">First name <span class="text-danger">*</span></label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Last name <span class="text-danger">*</span></label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email address <span class="text-danger">*</span></label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        {{ form.phone }}
+                    </div>
+
+                    <h6 class="text-muted mb-3 mt-4">Password</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        {{ form.password1 }}
+                        <div class="form-text">{{ form.password1.help_text }}</div>
+                        {% if form.password1.errors %}
+                            <div class="text-danger small">{{ form.password1.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm password <span class="text-danger">*</span></label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <div class="text-danger small">{{ form.password2.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <h6 class="text-muted mb-3 mt-4">Business Details</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Business / Farm name <span class="text-danger">*</span></label>
+                        {{ form.business_name }}
+                        {% if form.business_name.errors %}
+                            <div class="text-danger small">{{ form.business_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Business address <span class="text-danger">*</span></label>
+                        {{ form.business_address }}
+                        {% if form.business_address.errors %}
+                            <div class="text-danger small">{{ form.business_address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Postcode <span class="text-danger">*</span></label>
+                        {{ form.postcode }}
+                        {% if form.postcode.errors %}
+                            <div class="text-danger small">{{ form.postcode.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">About your farm / business</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Create Producer Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center text-muted py-3">
+                Are you a customer? <a href="{% url 'accounts:register_customer' %}">Register as a customer</a>
+                <br>
+                Already have an account? <a href="{% url 'accounts:login' %}">Log in</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

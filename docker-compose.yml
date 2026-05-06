@@ -1,0 +1,86 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: bfn_db
+      POSTGRES_USER: bfn_user
+      POSTGRES_PASSWORD: bfn_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bfn_user -d bfn_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    command: sh /app/entrypoint.sh
+    volumes:
+      - .:/app
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      payment-mock:
+        condition: service_started
+    environment:
+      - DATABASE_HOST=db
+      - DATABASE_NAME=bfn_db
+      - DATABASE_USER=bfn_user
+      - DATABASE_PASSWORD=bfn_password
+      - DEBUG=True
+      - PAYMENT_SERVICE_URL=http://payment-mock:9000
+    restart: on-failure
+
+  payment-mock:
+    image: python:3.11-slim
+    working_dir: /app
+    command: python mock_payment_service.py
+    volumes:
+      - .:/app
+    expose:
+      - "9000"
+    restart: on-failure
+
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+    restart: on-failure
+
+  # TC-012 / TC-018: Scheduled jobs — run management commands on a cron-like schedule.
+  # process_weekly_settlements runs every Monday at 00:05 to settle the previous week.
+  # generate_recurring_orders runs daily at 06:00 to auto-place due recurring orders.
+  scheduler:
+    build: .
+    command: >
+      sh -c "
+        while true; do
+          python manage.py generate_recurring_orders;
+          python manage.py process_weekly_settlements;
+          sleep 86400;
+        done
+      "
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=db
+      - DATABASE_NAME=bfn_db
+      - DATABASE_USER=bfn_user
+      - DATABASE_PASSWORD=bfn_password
+      - PAYMENT_SERVICE_URL=http://payment-mock:9000
+    restart: on-failure
+
+volumes:
+  postgres_data:
