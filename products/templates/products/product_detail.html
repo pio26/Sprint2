@@ -37,18 +37,42 @@
                     <i class="bi bi-leaf"></i> Organic
                 </span>
             {% endif %}
+            {% if product.is_surplus_active %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-tags"></i> {{ product.surplus_discount_percent }}% Surplus Deal</span>
+            {% endif %}
         </div>
 
         <h1 class="h2 mb-1">{{ product.name }}</h1>
         <p class="text-muted mb-3">
             <i class="bi bi-shop"></i>
-            <a href="#" class="text-decoration-none text-muted">{{ product.producer.business_name }}</a>
+            <a href="{% url 'products:producer_profile' product.producer.pk %}" class="text-decoration-none text-muted">{{ product.producer.business_name }}</a>
             &mdash; {{ product.producer.postcode }}
         </p>
 
         <div class="fs-3 text-success fw-bold mb-1">
-            £{{ product.price }} <small class="fs-6 text-muted fw-normal">{{ product.unit }}</small>
+            {% if product.is_surplus_active %}
+                <span class="text-muted text-decoration-line-through fs-5">£{{ product.price }}</span>
+                £{{ product.effective_price }}
+            {% else %}
+                £{{ product.price }}
+            {% endif %}
+            <small class="fs-6 text-muted fw-normal">{{ product.unit }}</small>
         </div>
+        {% if product.is_surplus_active and product.surplus_note %}
+            <p class="text-warning-emphasis small mb-2">{{ product.surplus_note }}</p>
+        {% endif %}
+
+        {% if food_miles is not None %}
+            <p class="text-muted small mb-2">
+                <i class="bi bi-geo-alt"></i> {{ food_miles }} food miles from your postcode
+            </p>
+        {% endif %}
+
+        {% if average_rating %}
+            <p class="text-muted small mb-2">
+                <i class="bi bi-star-fill text-warning"></i> {{ average_rating }} average rating from {{ reviews|length }} review{{ reviews|length|pluralize }}
+            </p>
+        {% endif %}
 
         {% if product.season_start and product.season_end %}
             <p class="text-muted small mb-3">
@@ -101,6 +125,23 @@
     </div>
 </div>
 
+{% if recipes %}
+<div class="card mt-4 shadow-sm">
+    <div class="card-header"><h5 class="mb-0"><i class="bi bi-journal-text"></i> Recipe Suggestions</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for recipe in recipes %}
+            <div class="col-md-6">
+                <h6 class="mb-1">{{ recipe.title }}</h6>
+                <p class="text-muted small mb-1">{{ recipe.description }}</p>
+                {% if recipe.seasonal_tag %}<span class="badge bg-light text-dark border">{{ recipe.seasonal_tag }}</span>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Allergen section (TC-015) -->
 <div class="card mt-4 shadow-sm">
     <div class="card-header">
@@ -144,4 +185,35 @@
     </div>
 </div>
 {% endif %}
+
+<div class="card mt-4 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-star"></i> Customer Reviews</h5>
+        {% if review_order_item %}
+            <a href="{% url 'products:write_review' review_order_item.pk %}" class="btn btn-sm btn-outline-success">
+                Write Review
+            </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if reviews %}
+            {% for review in reviews %}
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ review.title }}</strong>
+                        <span class="text-warning">{{ review.rating }} / 5</span>
+                    </div>
+                    <p class="mb-1">{{ review.text }}</p>
+                    <small class="text-muted">
+                        {% if review.is_anonymous %}Anonymous customer{% else %}{{ review.customer.first_name|default:"Customer" }}{% endif %}
+                        · {{ review.created_at|date:"d M Y" }}
+                        {% if review.verified_purchase %}· Verified purchase{% endif %}
+                    </small>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted mb-0">No reviews yet.</p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

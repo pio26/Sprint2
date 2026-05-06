@@ -5,6 +5,24 @@
 {% block content %}
 <h2 class="mb-4"><i class="bi bi-clock-history"></i> Order History</h2>
 
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-3">
+        <label class="form-label small text-muted">From</label>
+        <input type="date" name="start" value="{{ filters.start }}" class="form-control">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small text-muted">To</label>
+        <input type="date" name="end" value="{{ filters.end }}" class="form-control">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small text-muted">Producer</label>
+        <input type="search" name="producer" value="{{ filters.producer }}" class="form-control" placeholder="Farm or producer name">
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-outline-success w-100" type="submit">Filter</button>
+    </div>
+</form>
+
 {% if not page_obj.object_list %}
     <div class="text-center py-5">
         <i class="bi bi-bag-x text-muted" style="font-size: 3rem;"></i>

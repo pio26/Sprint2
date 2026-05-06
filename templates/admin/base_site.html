@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Bristol Food Network Admin{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin-modern.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name" class="bfn-brand">
+    <a href="{% url 'admin:index' %}">
+        <span class="bfn-mark">BFN</span>
+        <span>
+            <strong>Bristol Food Network</strong>
+            <small>Marketplace Admin</small>
+        </span>
+    </a>
+</div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}
+<nav class="bfn-admin-nav" aria-label="Admin shortcuts">
+    <a href="{% url 'home' %}">Storefront</a>
+    <a href="{% url 'orders:commission_report' %}">Finance Report</a>
+    <a href="{% url 'products:product_list' %}">Marketplace</a>
+</nav>
+{% endblock %}

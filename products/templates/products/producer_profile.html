@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ producer.business_name }} — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="mb-1">{{ producer.business_name }}</h2>
+    <p class="text-muted mb-1">{{ producer.postcode }}</p>
+    {% if producer.description %}<p>{{ producer.description }}</p>{% endif %}
+</div>
+
+<h4>Products</h4>
+<div class="row g-3 mb-4">
+    {% for product in products %}
+    <div class="col-md-4">
+        <div class="border rounded p-3 h-100">
+            <h6>{{ product.name }}</h6>
+            <p class="text-muted small mb-2">£{{ product.effective_price }} {{ product.unit }}</p>
+            <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-sm btn-outline-success">View</a>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No products currently available.</p>
+    {% endfor %}
+</div>
+
+<h4>Recipes</h4>
+<div class="row g-3 mb-4">
+    {% for recipe in recipes %}
+    <div class="col-md-6">
+        <div class="border rounded p-3 h-100">
+            <h6>{{ recipe.title }}</h6>
+            <p class="text-muted small">{{ recipe.description }}</p>
+            {% if recipe.seasonal_tag %}<span class="badge bg-light text-dark border">{{ recipe.seasonal_tag }}</span>{% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No recipes yet.</p>
+    {% endfor %}
+</div>
+
+<h4>Farm Stories</h4>
+{% for story in stories %}
+<div class="border-bottom pb-3 mb-3">
+    <h6>{{ story.title }}</h6>
+    <p>{{ story.body }}</p>
+    {% if story.seasonal_tag %}<span class="badge bg-light text-dark border">{{ story.seasonal_tag }}</span>{% endif %}
+</div>
+{% empty %}
+<p class="text-muted">No farm stories yet.</p>
+{% endfor %}
+{% endblock %}

@@ -81,9 +81,20 @@
                                 </div>
                             {% endif %}
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <strong class="text-success">£{{ product.price }} <small class="text-muted fw-normal">{{ product.unit }}</small></strong>
+                                <strong class="text-success">
+                                    {% if product.is_surplus_active %}
+                                        <span class="text-muted text-decoration-line-through small">£{{ product.price }}</span>
+                                        £{{ product.effective_price }}
+                                    {% else %}
+                                        £{{ product.price }}
+                                    {% endif %}
+                                    <small class="text-muted fw-normal">{{ product.unit }}</small>
+                                </strong>
                                 <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-success btn-sm">View</a>
                             </div>
+                            {% if product.food_miles is not None %}
+                                <small class="text-muted mt-2"><i class="bi bi-geo-alt"></i> {{ product.food_miles }} food miles</small>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

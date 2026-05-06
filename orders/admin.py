@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import Order, OrderItem, Payment
+from .models import Order, OrderItem, OrderStatusHistory, Payment, ProducerOrder, RecurringOrder, RecurringOrderItem
 
 
 def mark_as_confirmed(modeladmin, request, queryset):
@@ -16,6 +16,12 @@ class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
     readonly_fields = ['line_total']
+
+
+class ProducerOrderInline(admin.TabularInline):
+    model = ProducerOrder
+    extra = 0
+    readonly_fields = ['subtotal', 'commission_amount', 'producer_payment']
 
 
 class PaymentInline(admin.StackedInline):
@@ -33,7 +39,7 @@ class OrderAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
     actions = [mark_as_confirmed]
-    inlines = [OrderItemInline, PaymentInline]
+    inlines = [ProducerOrderInline, OrderItemInline, PaymentInline]
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -48,7 +54,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ['order', 'product_name', 'producer', 'price_at_time', 'quantity', 'line_total']
+    list_display = ['order', 'producer_order', 'product_name', 'producer', 'price_at_time', 'quantity', 'line_total']
     list_filter = ['producer']
     search_fields = ['order__order_number', 'product_name']
 
@@ -59,3 +65,31 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ['status']
     readonly_fields = ['transaction_id', 'created_at']
     date_hierarchy = 'created_at'
+
+
+@admin.register(ProducerOrder)
+class ProducerOrderAdmin(admin.ModelAdmin):
+    list_display = ['order', 'producer', 'status', 'delivery_date', 'subtotal', 'commission_amount', 'producer_payment']
+    list_filter = ['status', 'delivery_date', 'producer']
+    search_fields = ['order__order_number', 'producer__business_name']
+
+
+@admin.register(OrderStatusHistory)
+class OrderStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = ['order', 'producer_order', 'from_status', 'to_status', 'changed_by', 'created_at']
+    list_filter = ['from_status', 'to_status', 'created_at']
+    search_fields = ['order__order_number', 'note']
+
+
+class RecurringOrderItemInline(admin.TabularInline):
+    model = RecurringOrderItem
+    extra = 0
+    readonly_fields = ['line_total']
+
+
+@admin.register(RecurringOrder)
+class RecurringOrderAdmin(admin.ModelAdmin):
+    list_display = ['name', 'customer', 'frequency', 'delivery_weekday', 'next_delivery_date', 'is_active']
+    list_filter = ['frequency', 'delivery_weekday', 'is_active']
+    search_fields = ['name', 'customer__email']
+    inlines = [RecurringOrderItemInline]

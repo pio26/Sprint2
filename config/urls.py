@@ -1,8 +1,13 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
+from django.contrib.staticfiles.views import serve as serve_staticfiles
+from django.views.static import serve as serve_media
 from django.views.generic import TemplateView
+
+admin.site.site_header = 'Bristol Food Network Admin'
+admin.site.site_title = 'BFN Admin'
+admin.site.index_title = 'Marketplace Operations'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,5 +18,8 @@ urlpatterns = [
     path('orders/', include('orders.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG or getattr(settings, 'LOCAL_STATIC_SERVE', False):
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', serve_staticfiles, {'insecure': True}),
+        re_path(r'^media/(?P<path>.*)$', serve_media, {'document_root': settings.MEDIA_ROOT}),
+    ]

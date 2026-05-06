@@ -18,4 +18,14 @@ def role_required(role):
 
 
 producer_required = role_required('producer')
-customer_required = role_required('customer')
+
+
+def customer_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('accounts:login')
+        if request.user.role not in ('customer', 'community', 'restaurant'):
+            return HttpResponseForbidden("Access denied.")
+        return view_func(request, *args, **kwargs)
+    return wrapper

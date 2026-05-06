@@ -15,7 +15,7 @@
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item {% if not selected_category and not in_season_only %}active{% endif %}">
+                    <li class="list-group-item {% if not selected_category and not in_season_only and not organic_only %}active{% endif %}">
                         <a href="{% url 'products:product_list' %}" class="text-decoration-none {% if not selected_category and not in_season_only %}text-white{% endif %}">
                             All Products
                         </a>
@@ -23,6 +23,11 @@
                     <li class="list-group-item {% if in_season_only %}active{% endif %}">
                         <a href="{% url 'products:product_list' %}?in_season=1" class="text-decoration-none {% if in_season_only %}text-white{% endif %}">
                             <i class="bi bi-sun text-warning"></i> In Season
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if organic_only %}active{% endif %}">
+                        <a href="{% url 'products:product_list' %}?organic=1" class="text-decoration-none {% if organic_only %}text-white{% endif %}">
+                            <i class="bi bi-leaf text-success"></i> Certified Organic
                         </a>
                     </li>
                 </ul>
@@ -49,6 +54,7 @@
             <h4 class="mb-0">
                 {% if selected_category %}{{ selected_category.name }}
                 {% elif in_season_only %}In Season
+                {% elif organic_only %}Certified Organic
                 {% else %}All Products{% endif %}
             </h4>
             {% if user.is_authenticated and user.role == 'producer' %}
@@ -81,9 +87,20 @@
                             <small class="text-muted mb-2">{{ product.producer.business_name }}</small>
                             <p class="card-text text-truncate text-muted small flex-grow-1">{{ product.description }}</p>
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <strong class="text-success">£{{ product.price }} <small class="text-muted fw-normal">{{ product.unit }}</small></strong>
+                                <strong class="text-success">
+                                    {% if product.is_surplus_active %}
+                                        <span class="text-muted text-decoration-line-through small">£{{ product.price }}</span>
+                                        £{{ product.effective_price }}
+                                    {% else %}
+                                        £{{ product.price }}
+                                    {% endif %}
+                                    <small class="text-muted fw-normal">{{ product.unit }}</small>
+                                </strong>
                                 <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-success btn-sm">View</a>
                             </div>
+                            {% if product.food_miles is not None %}
+                                <small class="text-muted mt-2"><i class="bi bi-geo-alt"></i> {{ product.food_miles }} food miles</small>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

@@ -8,9 +8,17 @@
         <h2 class="mb-0">My Products</h2>
         <small class="text-muted">{{ user.producer_profile.business_name }}</small>
     </div>
-    <a href="{% url 'products:product_create' %}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Add New Product
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'products:recipe_create' %}" class="btn btn-outline-success">
+            <i class="bi bi-journal-text"></i> Recipe
+        </a>
+        <a href="{% url 'products:story_create' %}" class="btn btn-outline-success">
+            <i class="bi bi-newspaper"></i> Story
+        </a>
+        <a href="{% url 'products:product_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Add New Product
+        </a>
+    </div>
 </div>
 
 <!-- Summary stats -->
@@ -68,7 +76,7 @@
                         <td>
                             {% if product.stock_quantity == 0 %}
                                 <span class="badge bg-danger">Out of stock</span>
-                            {% elif product.stock_quantity <= 5 %}
+                            {% elif product.is_low_stock %}
                                 <span class="badge bg-warning text-dark">{{ product.stock_quantity }} (Low)</span>
                             {% else %}
                                 <span class="badge bg-success">{{ product.stock_quantity }}</span>
@@ -93,6 +101,9 @@
                                 </a>
                                 <a href="{% url 'products:stock_update' product.pk %}" class="btn btn-outline-secondary" title="Update stock">
                                     <i class="bi bi-box-seam"></i>
+                                </a>
+                                <a href="{% url 'products:mark_surplus' product.pk %}" class="btn btn-outline-warning" title="Mark as surplus deal">
+                                    <i class="bi bi-tags"></i>
                                 </a>
                                 <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-outline-danger" title="Delete">
                                     <i class="bi bi-trash"></i>

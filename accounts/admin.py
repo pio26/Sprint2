@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, CustomerProfile, ProducerProfile
+from .models import CustomerProfile, LoginAttempt, Notification, ProducerProfile, User
 
 
 @admin.register(User)
@@ -24,3 +24,17 @@ class UserAdmin(BaseUserAdmin):
 
 admin.site.register(CustomerProfile)
 admin.site.register(ProducerProfile)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['title', 'user', 'category', 'is_read', 'created_at']
+    list_filter = ['category', 'is_read', 'created_at']
+    search_fields = ['title', 'message', 'user__email']
+
+
+@admin.register(LoginAttempt)
+class LoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ['email', 'ip_address', 'success', 'created_at']
+    list_filter = ['success', 'created_at']
+    search_fields = ['email', 'ip_address']

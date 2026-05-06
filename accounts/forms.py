@@ -6,12 +6,36 @@ from .models import User, CustomerProfile, ProducerProfile
 
 
 class CustomerRegistrationForm(forms.Form):
+    ACCOUNT_TYPE_ROLE_MAP = {
+        'individual': 'customer',
+        'community_group': 'community',
+        'restaurant': 'restaurant',
+    }
+
     first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
     last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
     phone = forms.CharField(
         max_length=20, required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'})
+    )
+    account_type = forms.ChoiceField(
+        required=False,
+        choices=CustomerProfile.ACCOUNT_TYPE_CHOICES,
+        initial='individual',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    organization_name = forms.CharField(
+        max_length=200, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional for individual customers'})
+    )
+    organization_type = forms.CharField(
+        max_length=100, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'School, care home, cafe, restaurant...'})
+    )
+    payment_terms = forms.CharField(
+        max_length=100, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional, e.g. invoice on delivery'})
     )
     password1 = forms.CharField(
         label='Password',
@@ -30,6 +54,9 @@ class CustomerRegistrationForm(forms.Form):
         if User.objects.filter(email=email).exists():
             raise ValidationError('An account with this email already exists.')
         return email
+
+    def clean_account_type(self):
+        return self.cleaned_data.get('account_type') or 'individual'
 
     def clean_password1(self):
         password = self.cleaned_data.get('password1')
@@ -53,10 +80,14 @@ class CustomerRegistrationForm(forms.Form):
             first_name=data['first_name'],
             last_name=data['last_name'],
             phone=data.get('phone', ''),
-            role='customer',
+            role=self.ACCOUNT_TYPE_ROLE_MAP.get(data.get('account_type'), 'customer'),
         )
         CustomerProfile.objects.create(
             user=user,
+            account_type=data.get('account_type', 'individual'),
+            organization_name=data.get('organization_name', ''),
+            organization_type=data.get('organization_type', ''),
+            payment_terms=data.get('payment_terms', ''),
             delivery_address=data['delivery_address'],
             postcode=data['postcode'],
         )
@@ -131,6 +162,7 @@ class ProducerRegistrationForm(forms.Form):
 class LoginForm(forms.Form):
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'autofocus': True}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    remember_me = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
 
 
 class CustomerProfileForm(forms.Form):
@@ -142,6 +174,9 @@ class CustomerProfileForm(forms.Form):
     )
     delivery_address = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}))
     postcode = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    organization_name = forms.CharField(max_length=200, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    organization_type = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    payment_terms = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     def save(self, user):
         data = self.cleaned_data
@@ -152,6 +187,9 @@ class CustomerProfileForm(forms.Form):
         profile = user.customer_profile
         profile.delivery_address = data['delivery_address']
         profile.postcode = data['postcode']
+        profile.organization_name = data.get('organization_name', '')
+        profile.organization_type = data.get('organization_type', '')
+        profile.payment_terms = data.get('payment_terms', '')
         profile.save()
 
 

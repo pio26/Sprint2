@@ -53,7 +53,7 @@
                     <td>{{ order.created_at|date:"d M Y" }}</td>
                     <td>{{ order.delivery_date|date:"d M Y" }}</td>
                     <td class="text-center">
-                        {{ order.items.count }}
+                        {{ order.producer_item_count }}
                     </td>
                     <td class="text-center">
                         {% if order.status == 'pending' %}

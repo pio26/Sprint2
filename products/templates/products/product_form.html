@@ -47,7 +47,12 @@
                             {{ form.stock_quantity }}
                             {% if form.stock_quantity.errors %}<div class="text-danger small">{{ form.stock_quantity.errors.0 }}</div>{% endif %}
                         </div>
-                        <div class="col-md-8 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Low stock alert threshold</label>
+                            {{ form.low_stock_threshold }}
+                            {% if form.low_stock_threshold.errors %}<div class="text-danger small">{{ form.low_stock_threshold.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Product image</label>
                             {{ form.image }}
                             {% if object.image %}<div class="form-text">Current: <a href="{{ object.image.url }}" target="_blank">{{ object.image.name }}</a></div>{% endif %}

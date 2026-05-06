@@ -59,10 +59,26 @@
                     </tr>
                     <tr class="fw-bold">
                         <td colspan="2">Total Charged</td>
-                        <td class="text-end">£{{ order.total_with_commission }}</td>
+                        <td class="text-end">£{{ order.total }}</td>
                     </tr>
                 </tfoot>
             </table>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Producer Coordination</div>
+            <div class="list-group list-group-flush">
+                {% for producer_order in order.producer_orders.all %}
+                <div class="list-group-item">
+                    <strong>{{ producer_order.producer.business_name }}</strong>
+                    <div class="text-muted small">
+                        {{ producer_order.producer.user.email }}
+                        {% if producer_order.producer.user.phone %} · {{ producer_order.producer.user.phone }}{% endif %}
+                        · Delivery {{ producer_order.delivery_date }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
 
         <div class="d-flex gap-2 justify-content-center">

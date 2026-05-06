@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Review {{ order_item.product_name }} — Bristol Food Network{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h2 class="mb-4">Review {{ order_item.product_name }}</h2>
+        <form method="post" class="card shadow-sm">
+            {% csrf_token %}
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Rating</label>
+                    {{ form.rating }}
+                    {% if form.rating.errors %}<div class="text-danger small">{{ form.rating.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Review title</label>
+                    {{ form.title }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Review</label>
+                    {{ form.text }}
+                </div>
+                <div class="form-check mb-3">
+                    {{ form.is_anonymous }}
+                    <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">Post anonymously</label>
+                </div>
+                <button class="btn btn-success" type="submit">Submit Review</button>
+                <a href="{% url 'cart:order_detail' order_id=order_item.order_id %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

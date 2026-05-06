@@ -95,6 +95,20 @@
                         </div>
                     {% else %}
                         <hr>
+                        {% if profile_user.role == 'community' or profile_user.role == 'restaurant' %}
+                        <div class="mb-3">
+                            <label class="form-label">Organisation name</label>
+                            {{ form.organization_name }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Organisation type</label>
+                            {{ form.organization_type }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Payment terms</label>
+                            {{ form.payment_terms }}
+                        </div>
+                        {% endif %}
                         <div class="mb-3">
                             <label class="form-label">Delivery address</label>
                             {{ form.delivery_address }}

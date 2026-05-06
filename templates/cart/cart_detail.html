@@ -91,8 +91,14 @@
                     </div>
                     <div class="d-flex justify-content-between text-muted small mb-3">
                         <span>Platform fee (5%)</span>
-                        <span>included at checkout</span>
+                        <span>tracked for settlements</span>
                     </div>
+                    {% if total_food_miles %}
+                    <div class="d-flex justify-content-between text-muted small mb-3">
+                        <span>Food miles</span>
+                        <span>{{ total_food_miles }}</span>
+                    </div>
+                    {% endif %}
                     <hr>
                     <a href="{% url 'cart:checkout' %}" class="btn btn-success w-100 btn-lg">
                         <i class="bi bi-lock"></i> Proceed to Checkout

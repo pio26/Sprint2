@@ -16,6 +16,17 @@ class Cart(models.Model):
     def get_total(self):
         return sum(item.line_total for item in self.items.select_related('product').all())
 
+    def get_total_food_miles(self, customer_postcode=None):
+        postcode = customer_postcode
+        if postcode is None and hasattr(self.customer, 'customer_profile'):
+            postcode = self.customer.customer_profile.postcode
+        total = 0
+        for item in self.items.select_related('product__producer').all():
+            miles = item.product.food_miles_from(postcode)
+            if miles is not None:
+                total += float(miles) * item.quantity
+        return round(total, 1)
+
     def get_items_by_producer(self):
         grouped = OrderedDict()
         for item in self.items.select_related('product__producer__user').all():
@@ -45,4 +56,4 @@ class CartItem(models.Model):
 
     @property
     def line_total(self):
-        return self.product.price * self.quantity
+        return self.product.effective_price * self.quantity

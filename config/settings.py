@@ -45,6 +45,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'cart.context_processors.cart_count',
+                'cart.context_processors.notification_count',
             ],
         },
     },
@@ -94,6 +95,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+LOCAL_STATIC_SERVE = os.environ.get('LOCAL_STATIC_SERVE', 'True').lower() in {'1', 'true', 'yes', 'on'}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

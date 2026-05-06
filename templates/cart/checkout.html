@@ -38,6 +38,37 @@
                         {% endif %}
                     </div>
 
+                    <div class="mb-3">
+                        <label for="id_payment_method" class="form-label fw-semibold">Payment Method</label>
+                        {{ form.payment_method }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_test_payment_reference" class="form-label fw-semibold">Test Payment Reference</label>
+                        {{ form.test_payment_reference }}
+                    </div>
+
+                    {% if user.role == 'restaurant' %}
+                    <div class="border rounded p-3 mb-4">
+                        <div class="form-check mb-3">
+                            {{ form.make_recurring }}
+                            <label class="form-check-label fw-semibold" for="{{ form.make_recurring.id_for_label }}">
+                                Make this a recurring order
+                            </label>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Frequency</label>
+                                {{ form.recurrence_frequency }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Delivery day</label>
+                                {{ form.recurring_delivery_weekday }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <button type="submit" class="btn btn-success btn-lg w-100">
                         <i class="bi bi-lock"></i> Place Order
                     </button>
@@ -50,15 +81,29 @@
         <div class="card">
             <div class="card-header bg-light fw-semibold">Order Summary</div>
             <div class="card-body p-0">
+                {% for producer_id, group in grouped.items %}
+                <div class="p-3 border-bottom">
+                    <h6 class="mb-2"><i class="bi bi-shop"></i> {{ group.producer.business_name }}</h6>
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            {% for item in group.items %}
+                            <tr>
+                                <td>{{ item.product.name }} <span class="text-muted">×{{ item.quantity }}</span></td>
+                                <td class="text-end">£{{ item.line_total }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="fw-semibold">Producer subtotal</td>
+                                <td class="text-end fw-semibold">£{{ group.subtotal }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <small class="text-muted">Producer receives 95% after the 5% network commission.</small>
+                </div>
+                {% endfor %}
                 <table class="table table-sm mb-0">
-                    <tbody>
-                        {% for item in cart_items %}
-                        <tr>
-                            <td>{{ item.product.name }} <span class="text-muted">×{{ item.quantity }}</span></td>
-                            <td class="text-end">£{{ item.line_total }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
                     <tfoot>
                         <tr class="table-light">
                             <td class="fw-semibold">Total</td>
@@ -68,7 +113,8 @@
                 </table>
             </div>
             <div class="card-footer text-muted small">
-                A 5% platform fee is included in your total.
+                A 5% network commission is recorded from the order value.
+                {% if total_food_miles %}<br>Total food miles: {{ total_food_miles }}{% endif %}
             </div>
         </div>
     </div>

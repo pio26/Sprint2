@@ -13,5 +13,8 @@ urlpatterns = [
     path('confirmation/<int:order_id>/', views.order_confirmation, name='order_confirmation'),
     path('orders/', views.order_history, name='order_history'),
     path('orders/<int:order_id>/', views.order_detail_customer, name='order_detail'),
+    path('orders/<int:order_id>/receipt/', views.order_receipt, name='order_receipt'),
     path('orders/<int:order_id>/reorder/', views.reorder, name='reorder'),
+    path('recurring/', views.recurring_orders, name='recurring_orders'),
+    path('recurring/<int:recurring_id>/', views.recurring_order_detail, name='recurring_order_detail'),
 ]

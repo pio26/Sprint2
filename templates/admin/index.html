@@ -1,0 +1,160 @@
+{% extends "admin/base_site.html" %}
+{% load i18n log static admin_dashboard %}
+
+{% block bodyclass %}{{ block.super }} dashboard bfn-dashboard{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+
+{% block content %}
+{% admin_dashboard_stats as stats %}
+
+<section class="bfn-admin-hero">
+    <div>
+        <p class="bfn-kicker">Operations Console</p>
+        <h1>Marketplace Administration</h1>
+        <p class="bfn-hero-copy">Manage producers, products, orders, settlements, security events, and community marketplace workflows from one place.</p>
+    </div>
+    <div class="bfn-command">
+        <label for="admin-model-search">Search admin modules</label>
+        <input id="admin-model-search" type="search" placeholder="Type users, orders, products..." autocomplete="off">
+    </div>
+</section>
+
+<section class="bfn-metrics" aria-label="Marketplace metrics">
+    <article>
+        <span>Users</span>
+        <strong>{{ stats.users }}</strong>
+        <small>All account roles</small>
+    </article>
+    <article>
+        <span>Products</span>
+        <strong>{{ stats.products }}</strong>
+        <small>{{ stats.low_stock_products }} low stock</small>
+    </article>
+    <article>
+        <span>Orders</span>
+        <strong>{{ stats.orders }}</strong>
+        <small>{{ stats.pending_orders }} pending · {{ stats.delivered_orders }} delivered</small>
+    </article>
+    <article>
+        <span>Commission</span>
+        <strong>£{{ stats.commission }}</strong>
+        <small>From delivered orders</small>
+    </article>
+</section>
+
+<section class="bfn-quick-actions" aria-label="Quick actions">
+    <a href="{% url 'admin:products_product_add' %}">Add Product</a>
+    <a href="{% url 'admin:orders_order_changelist' %}?status__exact=pending">Pending Orders</a>
+    <a href="{% url 'admin:accounts_loginattempt_changelist' %}?success__exact=0">Security Log</a>
+    <a href="{% url 'orders:commission_report' %}">Commission Report</a>
+</section>
+
+<div class="bfn-admin-layout">
+    <main id="content-main" class="bfn-app-grid">
+        {% if app_list %}
+            {% for app in app_list %}
+            <section class="bfn-app-card app-{{ app.app_label }}" data-admin-card data-search="{{ app.name|lower }}">
+                <button type="button" class="bfn-card-toggle" aria-expanded="true">
+                    <span>{{ app.name }}</span>
+                    <small>{{ app.models|length }} module{{ app.models|length|pluralize }}</small>
+                </button>
+                <div class="bfn-model-list">
+                    {% for model in app.models %}
+                    <div class="bfn-model-row" data-search="{{ model.name|lower }}">
+                        <div>
+                            {% if model.admin_url %}
+                                <a class="bfn-model-name" href="{{ model.admin_url }}">{{ model.name }}</a>
+                            {% else %}
+                                <span class="bfn-model-name">{{ model.name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="bfn-model-actions">
+                            {% if model.add_url %}
+                                <a href="{{ model.add_url }}">Add</a>
+                            {% endif %}
+                            {% if model.admin_url and model.view_only or model.admin_url and model.perms.change %}
+                                <a href="{{ model.admin_url }}">Manage</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        {% else %}
+            <p>{% translate "You don't have permission to view or edit anything." %}</p>
+        {% endif %}
+    </main>
+
+    <aside class="bfn-admin-side">
+        <section class="bfn-side-card">
+            <h2>Attention</h2>
+            <dl>
+                <div><dt>Unread notifications</dt><dd>{{ stats.unread_notifications }}</dd></div>
+                <div><dt>Surplus deals</dt><dd>{{ stats.surplus_products }}</dd></div>
+                <div><dt>Failed logins</dt><dd>{{ stats.failed_logins }}</dd></div>
+            </dl>
+        </section>
+
+        <section class="bfn-side-card" id="recent-actions-module">
+            <h2>{% translate 'Recent Actions' %}</h2>
+            {% get_admin_log 8 as admin_log for_user user %}
+            {% if not admin_log %}
+                <p class="quiet">{% translate 'None available' %}</p>
+            {% else %}
+                <ul class="bfn-action-list">
+                {% for entry in admin_log %}
+                    <li>
+                        {% if entry.is_deletion or not entry.get_admin_url %}
+                            <strong>{{ entry.object_repr }}</strong>
+                        {% else %}
+                            <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                        {% endif %}
+                        <span>{% if entry.content_type %}{{ entry.content_type.name|capfirst }}{% else %}{% translate 'Unknown content' %}{% endif %}</span>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </aside>
+</div>
+
+<script>
+(() => {
+    const search = document.getElementById('admin-model-search');
+    const cards = [...document.querySelectorAll('[data-admin-card]')];
+
+    function filterCards() {
+        const term = search.value.trim().toLowerCase();
+        cards.forEach((card) => {
+            let visibleRows = 0;
+            const appMatch = card.dataset.search.includes(term);
+            card.querySelectorAll('.bfn-model-row').forEach((row) => {
+                const match = !term || appMatch || row.dataset.search.includes(term);
+                row.hidden = !match;
+                if (match) visibleRows += 1;
+            });
+            card.hidden = term && visibleRows === 0 && !appMatch;
+        });
+    }
+
+    search?.addEventListener('input', filterCards);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === '/' && document.activeElement !== search) {
+            event.preventDefault();
+            search.focus();
+        }
+    });
+
+    document.querySelectorAll('.bfn-card-toggle').forEach((button) => {
+        button.addEventListener('click', () => {
+            const list = button.closest('.bfn-app-card').querySelector('.bfn-model-list');
+            const expanded = button.getAttribute('aria-expanded') === 'true';
+            button.setAttribute('aria-expanded', String(!expanded));
+            list.hidden = expanded;
+        });
+    });
+})();
+</script>
+{% endblock %}

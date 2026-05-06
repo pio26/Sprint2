@@ -100,6 +100,7 @@
                     <form method="post" action="{% url 'orders:update_status' order_id=order.pk %}" class="mb-2">
                         {% csrf_token %}
                         <input type="hidden" name="status" value="{{ status_value }}">
+                        <textarea name="note" class="form-control form-control-sm mb-2" rows="2" placeholder="Optional update note"></textarea>
                         <button type="submit" class="btn w-100
                             {% if status_value == 'confirmed' %}btn-info text-dark
                             {% elif status_value == 'ready' %}btn-primary
@@ -112,6 +113,23 @@
                     {% endfor %}
                 {% else %}
                     <p class="text-muted small">No status transitions available for this order.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header fw-semibold">Status Timeline</div>
+            <div class="card-body">
+                {% if status_history %}
+                    {% for row in status_history %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <strong>{{ row.from_status|title }} → {{ row.to_status|title }}</strong>
+                        <div class="text-muted small">{{ row.created_at|date:"d M Y, H:i" }}{% if row.changed_by %} by {{ row.changed_by.email }}{% endif %}</div>
+                        {% if row.note %}<div>{{ row.note }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small mb-0">No status changes yet.</p>
                 {% endif %}
             </div>
         </div>

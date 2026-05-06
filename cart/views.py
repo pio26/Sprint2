@@ -2,11 +2,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import customer_required
-from orders.models import Order, OrderItem, Payment
+from accounts.models import Notification
+from orders.models import Order, OrderItem, Payment, ProducerOrder, RecurringOrder, RecurringOrderItem
 from products.models import Product
 
 from .forms import CheckoutForm
@@ -22,6 +23,7 @@ def cart_detail(request):
         'cart': cart,
         'grouped': cart.get_items_by_producer(),
         'total': cart.get_total(),
+        'total_food_miles': cart.get_total_food_miles(),
     })
 
 
@@ -131,22 +133,87 @@ def checkout(request):
                     status='pending',
                 )
 
+                producer_orders = {}
                 for item in cart_items:
+                    producer = item.product.producer
+                    if producer.pk not in producer_orders:
+                        producer_orders[producer.pk] = ProducerOrder.objects.create(
+                            order=order,
+                            producer=producer,
+                            delivery_date=form.cleaned_data['delivery_date'],
+                            special_instructions=form.cleaned_data.get('special_instructions', ''),
+                            status='pending',
+                        )
+
+                for item in cart_items:
+                    producer_order = producer_orders[item.product.producer_id]
                     OrderItem.objects.create(
                         order=order,
+                        producer_order=producer_order,
                         product=item.product,
                         producer=item.product.producer,
                         product_name=item.product.name,
-                        price_at_time=item.product.price,
+                        price_at_time=item.product.effective_price,
                         quantity=item.quantity,
                     )
+                    item.product.stock_quantity -= item.quantity
+                    item.product.save(update_fields=['stock_quantity', 'updated_at'])
+                    if item.product.is_low_stock:
+                        if not Notification.objects.filter(
+                            user=item.product.producer.user,
+                            related_product=item.product,
+                            category='stock',
+                            is_read=False,
+                        ).exists():
+                            Notification.objects.create(
+                                user=item.product.producer.user,
+                                related_product=item.product,
+                                category='stock',
+                                title='Low stock alert',
+                                message=(
+                                    f'Low Stock Alert: {item.product.name} - '
+                                    f'Only {item.product.stock_quantity} {item.product.unit} remaining.'
+                                ),
+                            )
 
                 Payment.objects.create(
                     order=order,
                     amount=order.total,
                     commission=order.commission_amount,
                     producer_amount=order.producer_payment,
+                    payment_method=form.cleaned_data['payment_method'],
+                    transaction_id=form.cleaned_data.get('test_payment_reference', ''),
+                    status='completed' if form.cleaned_data['payment_method'] == 'mock_card' else 'pending',
                 )
+
+                if request.user.role == 'restaurant' and form.cleaned_data.get('make_recurring'):
+                    recurring = RecurringOrder.objects.create(
+                        customer=request.user,
+                        name=f'Weekly order based on {order.order_number}',
+                        frequency=form.cleaned_data.get('recurrence_frequency') or 'weekly',
+                        delivery_weekday=form.cleaned_data.get('recurring_delivery_weekday') or 2,
+                        next_delivery_date=form.cleaned_data['delivery_date'],
+                        special_instructions=form.cleaned_data.get('special_instructions', ''),
+                    )
+                    for item in cart_items:
+                        RecurringOrderItem.objects.create(
+                            recurring_order=recurring,
+                            product=item.product,
+                            producer=item.product.producer,
+                            quantity=item.quantity,
+                        )
+
+                for producer_order in producer_orders.values():
+                    Notification.objects.create(
+                        user=producer_order.producer.user,
+                        title='New order received',
+                        message=(
+                            f'Order {order.order_number} includes items from your business '
+                            f'for delivery on {producer_order.delivery_date}.'
+                        ),
+                        category='order',
+                        related_order=order,
+                    )
 
                 cart.items.all().delete()
 
@@ -159,6 +226,8 @@ def checkout(request):
         'cart': cart,
         'cart_items': cart_items,
         'total': cart.get_total(),
+        'grouped': cart.get_items_by_producer(),
+        'total_food_miles': cart.get_total_food_miles(),
     })
 
 
@@ -170,15 +239,31 @@ def order_confirmation(request, order_id):
 
 @customer_required
 def order_history(request):
-    orders = Order.objects.filter(customer=request.user).prefetch_related('items')
+    orders = Order.objects.filter(customer=request.user).prefetch_related('items__producer')
+    start = request.GET.get('start')
+    end = request.GET.get('end')
+    producer = request.GET.get('producer', '').strip()
+    if start:
+        orders = orders.filter(created_at__date__gte=start)
+    if end:
+        orders = orders.filter(created_at__date__lte=end)
+    if producer:
+        orders = orders.filter(items__producer__business_name__icontains=producer).distinct()
     paginator = Paginator(orders, 10)
     page = paginator.get_page(request.GET.get('page'))
-    return render(request, 'cart/order_history.html', {'page_obj': page})
+    return render(request, 'cart/order_history.html', {
+        'page_obj': page,
+        'filters': {'start': start or '', 'end': end or '', 'producer': producer},
+    })
 
 
 @customer_required
 def order_detail_customer(request, order_id):
-    order = get_object_or_404(Order, pk=order_id, customer=request.user)
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items__product__reviews', 'producer_orders__producer'),
+        pk=order_id,
+        customer=request.user,
+    )
     return render(request, 'cart/order_detail.html', {'order': order})
 
 
@@ -212,3 +297,56 @@ def reorder(request, order_id):
         messages.warning(request, f'{skipped} item(s) were skipped (no longer available).')
 
     return redirect('cart:cart_detail')
+
+
+@customer_required
+def order_receipt(request, order_id):
+    order = get_object_or_404(Order, pk=order_id, customer=request.user)
+    lines = [
+        'Bristol Regional Food Network Receipt',
+        f'Order: {order.order_number}',
+        f'Date: {order.created_at:%d %b %Y}',
+        f'Status: {order.get_status_display()}',
+        '',
+        'Items:',
+    ]
+    for item in order.items.select_related('producer').all():
+        producer = item.producer.business_name if item.producer else 'Unknown producer'
+        lines.append(f'- {item.product_name} ({producer}) x{item.quantity}: £{item.line_total}')
+    lines.extend([
+        '',
+        f'Subtotal: £{order.total}',
+        f'Network commission included: £{order.commission_amount}',
+        f'Producer payment total: £{order.producer_payment}',
+    ])
+    return HttpResponse('\n'.join(lines), content_type='text/plain')
+
+
+@customer_required
+def recurring_orders(request):
+    templates = RecurringOrder.objects.filter(customer=request.user).prefetch_related('items__product')
+    return render(request, 'cart/recurring_orders.html', {'templates': templates})
+
+
+@customer_required
+def recurring_order_detail(request, recurring_id):
+    template = get_object_or_404(
+        RecurringOrder.objects.prefetch_related('items__product'),
+        pk=recurring_id,
+        customer=request.user,
+    )
+    if request.method == 'POST':
+        template.is_active = request.POST.get('is_active') == 'on'
+        template.special_instructions = request.POST.get('special_instructions', '')
+        template.save(update_fields=['is_active', 'special_instructions', 'updated_at'])
+        for item in template.items.all():
+            value = request.POST.get(f'quantity_{item.pk}')
+            if value:
+                try:
+                    item.quantity = max(1, int(value))
+                    item.save(update_fields=['quantity'])
+                except ValueError:
+                    pass
+        messages.success(request, 'Recurring order updated.')
+        return redirect('cart:recurring_order_detail', recurring_id=template.pk)
+    return render(request, 'cart/recurring_order_detail.html', {'template': template})
