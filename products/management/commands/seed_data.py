@@ -12,7 +12,6 @@ from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.core.files import File
 from django.utils import timezone
 
 from accounts.models import CustomerProfile, ProducerProfile
@@ -590,11 +589,12 @@ class Command(BaseCommand):
                 skip(p.name)
             if not p.image:
                 fn = image_map.get(p.name)
-                if fn:
-                    img_path = media_root / fn
-                    if img_path.exists():
-                        with open(img_path, 'rb') as f:
-                            p.image.save(fn, File(f), save=True)
+                if fn and (media_root / fn).exists():
+                    # Point at the canonical file directly — avoids Django's
+                    # hash-suffix collision handling when media/ is the same
+                    # source and destination.
+                    p.image.name = f'products/{fn}'
+                    p.save(update_fields=['image'])
             products[p.name] = p
         return products
 
