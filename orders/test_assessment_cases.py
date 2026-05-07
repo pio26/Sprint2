@@ -367,6 +367,7 @@ class AssessmentTestCaseCoverage(TestCase):
 
     def test_tc017_community_bulk_order_complete(self):
         """TC-017: community groups register distinctly and can place large multi-producer orders."""
+        # Step 1: Register as a community group
         response = self.client.post(reverse('accounts:register_customer'), {
             'first_name': 'Sam',
             'last_name': 'Caterer',
@@ -380,25 +381,94 @@ class AssessmentTestCaseCoverage(TestCase):
             'postcode': 'BS3 3CC',
         })
         self.assertRedirects(response, reverse('home'))
+
         community = User.objects.get(email='catering@stmarys-school.org.uk')
+
+        # Acceptance: role is community
         self.assertEqual(community.role, 'community')
+        # Acceptance: profile stores community-specific details
+        self.assertEqual(community.customer_profile.account_type, 'community_group')
+        self.assertEqual(community.customer_profile.organization_name, 'St Marys School')
+        self.assertEqual(community.customer_profile.organization_type, 'Education')
+        self.assertEqual(community.customer_profile.delivery_address, 'School Kitchen, Bristol')
+        self.assertEqual(community.customer_profile.postcode, 'BS3 3CC')
+
+        # Step 2: Set up two producers with products
         _, p1 = make_producer(email='farm1@test.com')
         _, p2 = make_producer(email='farm2@test.com')
         potato = make_product(p1, name='Potatoes', stock=100)
         milk = make_product(p2, name='Milk', stock=100)
-        cart = Cart.objects.create(customer=community)
-        CartItem.objects.create(cart=cart, product=potato, quantity=50)
-        CartItem.objects.create(cart=cart, product=milk, quantity=30)
+
+        # Step 3: Log in and add bulk quantities via the real cart flow
         self.client.force_login(community)
-        self.client.post(reverse('cart:checkout'), {
+
+        # Acceptance: community user can access cart detail
+        response = self.client.get(reverse('cart:cart_detail'))
+        self.assertEqual(response.status_code, 200)
+
+        # Acceptance: can add large quantities to cart (bulk order)
+        self.client.post(reverse('cart:add_to_cart', args=[potato.pk]), {'quantity': '50'})
+        self.client.post(reverse('cart:add_to_cart', args=[milk.pk]), {'quantity': '30'})
+
+        cart = community.cart
+        self.assertEqual(cart.items.count(), 2)
+        self.assertEqual(cart.items.get(product=potato).quantity, 50)
+        self.assertEqual(cart.items.get(product=milk).quantity, 30)
+
+        # Acceptance: cart detail shows bulk items and totals
+        response = self.client.get(reverse('cart:cart_detail'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Potatoes')
+        self.assertContains(response, 'Milk')
+
+        # Step 4: Checkout with special instructions
+        response = self.client.post(reverse('cart:checkout'), {
             'delivery_address': 'School Kitchen, Bristol',
             'delivery_date': future_date().isoformat(),
             'special_instructions': 'Deliver to kitchen entrance',
             'allergen_acknowledged': 'on',
         })
+        # Acceptance: checkout redirects to confirmation
+        self.assertEqual(response.status_code, 302)
+
         order = Order.objects.get(customer=community)
+
+        # Acceptance: one customer order created
+        self.assertIsNotNone(order)
+        # Acceptance: multi-producer sub-orders created
         self.assertEqual(order.producer_orders.count(), 2)
+        # Acceptance: special instructions preserved
         self.assertIn('kitchen entrance', order.special_instructions)
+        # Acceptance: order total reflects bulk quantities (default price 4.00)
+        self.assertEqual(order.total, Decimal('320.00'))  # 50*4.00 + 30*4.00 = 320
+
+        # Acceptance: stock decremented for bulk quantities
+        potato.refresh_from_db()
+        milk.refresh_from_db()
+        self.assertEqual(potato.stock_quantity, 50)
+        self.assertEqual(milk.stock_quantity, 70)
+
+        # Acceptance: payment recorded with commission
+        self.assertTrue(Payment.objects.filter(order=order).exists())
+        self.assertEqual(order.payment.commission, Decimal('16.00'))  # 5% of 320
+        self.assertEqual(order.payment.producer_amount, Decimal('304.00'))
+
+        # Acceptance: cart cleared after checkout
+        self.assertEqual(cart.items.count(), 0)
+
+        # Acceptance: producers receive order notifications
+        self.assertTrue(Notification.objects.filter(user=p1.user, category='order').exists())
+        self.assertTrue(Notification.objects.filter(user=p2.user, category='order').exists())
+
+        # Acceptance: community user can view order history
+        response = self.client.get(reverse('cart:order_history'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, order.order_number)
+
+        # Acceptance: order detail accessible
+        response = self.client.get(reverse('cart:order_detail', args=[order.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, order.order_number)
 
     def test_tc018_restaurant_recurring_orders_complete(self):
         """TC-018: restaurant checkout can save and manage a recurring order template."""

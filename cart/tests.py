@@ -579,3 +579,80 @@ class OrderDetailViewTests(TestCase):
         self.client.force_login(self.customer)
         response = self.client.get(reverse('cart:order_receipt', args=[self.order.pk]))
         self.assertContains(response, self.order.order_number)
+
+
+# --- Community and Restaurant cart access ---
+
+class CommunityRestaurantCartAccessTests(TestCase):
+
+    def make_user(self, role, account_type, email):
+        user = User.objects.create_user(
+            email=email, password='Testpass99!',
+            first_name='Sam', last_name='Caterer', role=role,
+        )
+        CustomerProfile.objects.create(
+            user=user,
+            account_type=account_type,
+            organization_name='St Marys School' if role == 'community' else 'The Kitchen',
+            delivery_address='1 Test St, Bristol',
+            postcode='BS1 5JG',
+        )
+        return user
+
+    def setUp(self):
+        self.community = self.make_user('community', 'community_group', 'community@test.com')
+        self.restaurant = self.make_user('restaurant', 'restaurant', 'restaurant@test.com')
+        _, self.producer_profile = make_producer()
+        self.product = make_product(self.producer_profile)
+
+    def test_community_can_view_cart(self):
+        """Community users can access the cart detail page."""
+        self.client.force_login(self.community)
+        response = self.client.get(reverse('cart:cart_detail'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_restaurant_can_view_cart(self):
+        """Restaurant users can access the cart detail page."""
+        self.client.force_login(self.restaurant)
+        response = self.client.get(reverse('cart:cart_detail'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_community_can_add_to_cart(self):
+        """Community users can add products to the cart."""
+        self.client.force_login(self.community)
+        url = reverse('cart:add_to_cart', args=[self.product.pk])
+        response = self.client.post(url, {'quantity': '5'})
+        self.assertEqual(CartItem.objects.filter(cart__customer=self.community).count(), 1)
+
+    def test_restaurant_can_add_to_cart(self):
+        """Restaurant users can add products to the cart."""
+        self.client.force_login(self.restaurant)
+        url = reverse('cart:add_to_cart', args=[self.product.pk])
+        response = self.client.post(url, {'quantity': '3'})
+        self.assertEqual(CartItem.objects.filter(cart__customer=self.restaurant).count(), 1)
+
+    def test_community_can_checkout(self):
+        """Community users can complete checkout."""
+        cart = Cart.objects.create(customer=self.community)
+        CartItem.objects.create(cart=cart, product=self.product, quantity=2)
+        self.client.force_login(self.community)
+        response = self.client.post(reverse('cart:checkout'), {
+            'delivery_address': 'School Kitchen, Bristol',
+            'delivery_date': future_date(),
+            'allergen_acknowledged': 'on',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Order.objects.filter(customer=self.community).exists())
+
+    def test_restaurant_can_checkout(self):
+        """Restaurant users can complete checkout."""
+        cart = Cart.objects.create(customer=self.restaurant)
+        CartItem.objects.create(cart=cart, product=self.product, quantity=4)
+        self.client.force_login(self.restaurant)
+        response = self.client.post(reverse('cart:checkout'), {
+            'delivery_address': 'Restaurant Kitchen, Bristol',
+            'delivery_date': future_date(),
+            'allergen_acknowledged': 'on',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Order.objects.filter(customer=self.restaurant).exists())
