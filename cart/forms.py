@@ -1,11 +1,12 @@
 from datetime import timedelta
 
 from django import forms
+from django.conf import settings
 from django.utils import timezone
 
 
 class CheckoutForm(forms.Form):
-    PAYMENT_METHOD_CHOICES = [
+    BASE_PAYMENT_METHOD_CHOICES = [
         ('mock_card', 'Test card payment'),
         ('mock_invoice', 'Invoice / purchase order'),
     ]
@@ -38,7 +39,7 @@ class CheckoutForm(forms.Form):
     )
     payment_method = forms.ChoiceField(
         required=False,
-        choices=PAYMENT_METHOD_CHOICES,
+        choices=BASE_PAYMENT_METHOD_CHOICES,
         initial='mock_card',
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
@@ -63,6 +64,13 @@ class CheckoutForm(forms.Form):
         initial=2,
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        payment_method_choices = list(self.BASE_PAYMENT_METHOD_CHOICES)
+        if settings.STRIPE_SECRET_KEY:
+            payment_method_choices.append(('stripe_checkout', 'Stripe Checkout (test mode)'))
+        self.fields['payment_method'].choices = payment_method_choices
 
     def clean_delivery_date(self):
         date = self.cleaned_data['delivery_date']

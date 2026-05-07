@@ -261,3 +261,26 @@ class SeasonalAvailabilityTests(TestCase):
         make_product(self.producer, self.cat, name='Year Round Eggs', stock=10, availability='year_round')
         response = self.client.get(reverse('products:product_list'))
         self.assertContains(response, 'Year Round Eggs')
+
+
+class ProductAPITests(TestCase):
+
+    def setUp(self):
+        _, producer = make_producer()
+        category = make_category()
+        make_product(producer, category, name='API Tomatoes', stock=12)
+
+    def test_products_api_returns_json_data(self):
+        response = self.client.get('/api/products/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'].split(';')[0], 'application/json')
+        payload = response.json()
+        self.assertEqual(payload[0]['name'], 'API Tomatoes')
+        self.assertEqual(payload[0]['producer_name'], 'Test Farm')
+
+    def test_categories_api_returns_json_data(self):
+        response = self.client.get('/api/categories/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'].split(';')[0], 'application/json')
+        payload = response.json()
+        self.assertEqual(payload[0]['name'], 'Vegetables')

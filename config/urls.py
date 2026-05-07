@@ -12,6 +12,7 @@ admin.site.index_title = 'Marketplace Operations'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('api/', include('api_urls')),
     path('accounts/', include('accounts.urls')),
     path('products/', include('products.urls')),
     path('cart/', include('cart.urls')),

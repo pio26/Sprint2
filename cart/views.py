@@ -4,10 +4,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from accounts.decorators import customer_required
 from accounts.models import Notification
@@ -17,6 +18,7 @@ from products.models import Product
 from .forms import CheckoutForm
 from .models import Cart, CartItem
 from .payments import process_payment
+from .stripe_checkout import StripeCheckoutError, construct_webhook_event, create_checkout_session
 
 
 def _advance_recurring_date(template):
@@ -122,6 +124,8 @@ def checkout(request):
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
         if form.is_valid():
+            payment_method = form.cleaned_data['payment_method']
+            use_stripe_checkout = payment_method == 'stripe_checkout'
             out_of_stock = [
                 item for item in cart_items
                 if not item.product.is_available or item.quantity > item.product.stock_quantity
@@ -135,104 +139,121 @@ def checkout(request):
                 )
                 return redirect('cart:cart_detail')
 
-            with transaction.atomic():
-                order = Order.objects.create(
-                    customer=request.user,
-                    delivery_address=form.cleaned_data['delivery_address'],
-                    delivery_date=form.cleaned_data['delivery_date'],
-                    special_instructions=form.cleaned_data.get('special_instructions', ''),
-                    status='pending',
-                )
-
-                producer_orders = {}
-                for item in cart_items:
-                    producer = item.product.producer
-                    if producer.pk not in producer_orders:
-                        producer_orders[producer.pk] = ProducerOrder.objects.create(
-                            order=order,
-                            producer=producer,
-                            delivery_date=form.cleaned_data['delivery_date'],
-                            special_instructions=form.cleaned_data.get('special_instructions', ''),
-                            status='pending',
-                        )
-
-                for item in cart_items:
-                    producer_order = producer_orders[item.product.producer_id]
-                    OrderItem.objects.create(
-                        order=order,
-                        producer_order=producer_order,
-                        product=item.product,
-                        producer=item.product.producer,
-                        product_name=item.product.name,
-                        price_at_time=item.product.effective_price,
-                        quantity=item.quantity,
+            stripe_session_url = None
+            try:
+                with transaction.atomic():
+                    order = Order.objects.create(
+                        customer=request.user,
+                        delivery_address=form.cleaned_data['delivery_address'],
+                        delivery_date=form.cleaned_data['delivery_date'],
+                        special_instructions=form.cleaned_data.get('special_instructions', ''),
+                        status='pending',
                     )
-                    item.product.stock_quantity -= item.quantity
-                    item.product.save(update_fields=['stock_quantity', 'updated_at'])
-                    if item.product.is_low_stock:
-                        if not Notification.objects.filter(
-                            user=item.product.producer.user,
-                            related_product=item.product,
-                            category='stock',
-                            is_read=False,
-                        ).exists():
-                            Notification.objects.create(
+
+                    producer_orders = {}
+                    for item in cart_items:
+                        producer = item.product.producer
+                        if producer.pk not in producer_orders:
+                            producer_orders[producer.pk] = ProducerOrder.objects.create(
+                                order=order,
+                                producer=producer,
+                                delivery_date=form.cleaned_data['delivery_date'],
+                                special_instructions=form.cleaned_data.get('special_instructions', ''),
+                                status='pending',
+                            )
+
+                    for item in cart_items:
+                        producer_order = producer_orders[item.product.producer_id]
+                        OrderItem.objects.create(
+                            order=order,
+                            producer_order=producer_order,
+                            product=item.product,
+                            producer=item.product.producer,
+                            product_name=item.product.name,
+                            price_at_time=item.product.effective_price,
+                            quantity=item.quantity,
+                        )
+                        item.product.stock_quantity -= item.quantity
+                        item.product.save(update_fields=['stock_quantity', 'updated_at'])
+                        if item.product.is_low_stock:
+                            if not Notification.objects.filter(
                                 user=item.product.producer.user,
                                 related_product=item.product,
                                 category='stock',
-                                title='Low stock alert',
-                                message=(
-                                    f'Low Stock Alert: {item.product.name} - '
-                                    f'Only {item.product.stock_quantity} {item.product.unit} remaining.'
-                                ),
-                            )
+                                is_read=False,
+                            ).exists():
+                                Notification.objects.create(
+                                    user=item.product.producer.user,
+                                    related_product=item.product,
+                                    category='stock',
+                                    title='Low stock alert',
+                                    message=(
+                                        f'Low Stock Alert: {item.product.name} - '
+                                        f'Only {item.product.stock_quantity} {item.product.unit} remaining.'
+                                    ),
+                                )
 
-                transaction_id, payment_status = process_payment(
-                    order.total,
-                    form.cleaned_data.get('test_payment_reference', ''),
-                    form.cleaned_data['payment_method'],
-                )
-
-                Payment.objects.create(
-                    order=order,
-                    amount=order.total,
-                    commission=order.commission_amount,
-                    producer_amount=order.producer_payment,
-                    payment_method=form.cleaned_data['payment_method'],
-                    transaction_id=transaction_id,
-                    status=payment_status,
-                )
-
-                if request.user.role == 'restaurant' and form.cleaned_data.get('make_recurring'):
-                    recurring = RecurringOrder.objects.create(
-                        customer=request.user,
-                        name=f'Weekly order based on {order.order_number}',
-                        frequency=form.cleaned_data.get('recurrence_frequency') or 'weekly',
-                        delivery_weekday=form.cleaned_data.get('recurring_delivery_weekday') or 2,
-                        next_delivery_date=form.cleaned_data['delivery_date'],
-                        special_instructions=form.cleaned_data.get('special_instructions', ''),
-                    )
-                    for item in cart_items:
-                        RecurringOrderItem.objects.create(
-                            recurring_order=recurring,
-                            product=item.product,
-                            producer=item.product.producer,
-                            quantity=item.quantity,
+                    if use_stripe_checkout:
+                        transaction_id, payment_status = '', 'pending'
+                    else:
+                        transaction_id, payment_status = process_payment(
+                            order.total,
+                            form.cleaned_data.get('test_payment_reference', ''),
+                            payment_method,
                         )
 
-                for producer_order in producer_orders.values():
-                    Notification.objects.create(
-                        user=producer_order.producer.user,
-                        title='New order received',
-                        message=(
-                            f'Order {order.order_number} includes items from your business '
-                            f'for delivery on {producer_order.delivery_date}.'
-                        ),
-                        category='order',
-                        related_order=order,
+                    payment = Payment.objects.create(
+                        order=order,
+                        amount=order.total,
+                        commission=order.commission_amount,
+                        producer_amount=order.producer_payment,
+                        payment_method=payment_method,
+                        transaction_id=transaction_id,
+                        status=payment_status,
                     )
 
-                cart.items.all().delete()
+                    if use_stripe_checkout:
+                        stripe_session = create_checkout_session(request, order, cart_items)
+                        payment.transaction_id = stripe_session.id
+                        payment.save(update_fields=['transaction_id'])
+                        stripe_session_url = stripe_session.url
+
+                    if request.user.role == 'restaurant' and form.cleaned_data.get('make_recurring'):
+                        recurring = RecurringOrder.objects.create(
+                            customer=request.user,
+                            name=f'Weekly order based on {order.order_number}',
+                            frequency=form.cleaned_data.get('recurrence_frequency') or 'weekly',
+                            delivery_weekday=form.cleaned_data.get('recurring_delivery_weekday') or 2,
+                            next_delivery_date=form.cleaned_data['delivery_date'],
+                            special_instructions=form.cleaned_data.get('special_instructions', ''),
+                        )
+                        for item in cart_items:
+                            RecurringOrderItem.objects.create(
+                                recurring_order=recurring,
+                                product=item.product,
+                                producer=item.product.producer,
+                                quantity=item.quantity,
+                            )
+
+                    for producer_order in producer_orders.values():
+                        Notification.objects.create(
+                            user=producer_order.producer.user,
+                            title='New order received',
+                            message=(
+                                f'Order {order.order_number} includes items from your business '
+                                f'for delivery on {producer_order.delivery_date}.'
+                            ),
+                            category='order',
+                            related_order=order,
+                        )
+
+                    cart.items.all().delete()
+            except StripeCheckoutError as exc:
+                messages.error(request, f'Stripe Checkout could not be started: {exc}')
+                return redirect('cart:checkout')
+
+            if stripe_session_url:
+                return redirect(stripe_session_url)
 
             return redirect('cart:order_confirmation', order_id=order.pk)
     else:
@@ -390,3 +411,44 @@ def recurring_order_detail(request, recurring_id):
         messages.success(request, 'Recurring order updated.')
         return redirect('cart:recurring_order_detail', recurring_id=template.pk)
     return render(request, 'cart/recurring_order_detail.html', {'template': template})
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    if request.method != 'POST':
+        return HttpResponseForbidden('Only POST requests are allowed.')
+
+    signature = request.META.get('HTTP_STRIPE_SIGNATURE')
+    if not signature:
+        return HttpResponseBadRequest('Missing Stripe signature.')
+
+    try:
+        event = construct_webhook_event(request.body, signature)
+    except ValueError:
+        return HttpResponseBadRequest('Invalid webhook payload.')
+    except StripeCheckoutError as exc:
+        return HttpResponseBadRequest(str(exc))
+    except Exception:
+        return HttpResponseBadRequest('Invalid Stripe signature.')
+
+    session = event['data']['object']
+    order_id = session.get('metadata', {}).get('order_id') or session.get('client_reference_id')
+
+    if order_id and event['type'] in {
+        'checkout.session.completed',
+        'checkout.session.async_payment_succeeded',
+    }:
+        Payment.objects.filter(order_id=order_id).update(
+            transaction_id=session.get('id', ''),
+            status='completed',
+        )
+    elif order_id and event['type'] in {
+        'checkout.session.async_payment_failed',
+        'checkout.session.expired',
+    }:
+        Payment.objects.filter(order_id=order_id).update(
+            transaction_id=session.get('id', ''),
+            status='failed',
+        )
+
+    return HttpResponse(status=200)

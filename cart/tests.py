@@ -1,6 +1,8 @@
 from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -241,6 +243,39 @@ class CheckoutTests(TestCase):
         self.client.force_login(producer_user)
         response = self._checkout_post()
         self.assertEqual(response.status_code, 403)
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_example')
+class StripeCheckoutTests(TestCase):
+
+    def setUp(self):
+        self.customer = make_customer()
+        _, producer_profile = make_producer()
+        product = make_product(producer_profile)
+        cart = Cart.objects.create(customer=self.customer)
+        CartItem.objects.create(cart=cart, product=product, quantity=2)
+        self.url = reverse('cart:checkout')
+
+    @patch('cart.views.create_checkout_session')
+    def test_stripe_checkout_creates_pending_payment_and_redirects(self, create_checkout_session):
+        self.client.force_login(self.customer)
+        create_checkout_session.return_value = SimpleNamespace(
+            id='cs_test_123',
+            url='https://checkout.stripe.com/c/pay/cs_test_123',
+        )
+
+        response = self.client.post(self.url, {
+            'delivery_address': '1 Test St, Bristol',
+            'delivery_date': future_date(3),
+            'special_instructions': '',
+            'payment_method': 'stripe_checkout',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], 'https://checkout.stripe.com/c/pay/cs_test_123')
+        order = Order.objects.get(customer=self.customer)
+        self.assertEqual(order.payment.payment_method, 'stripe_checkout')
+        self.assertEqual(order.payment.status, 'pending')
 
 
 # --- TC-012: Order History ---
