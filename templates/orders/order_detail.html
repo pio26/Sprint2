@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-box-seam"></i> Order {{ order.order_number }}</h2>
+    <h2 class="font-display"><i class="bi bi-box-seam"></i> Order {{ order.order_number }}</h2>
     <a href="{% url 'orders:incoming_orders' %}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left"></i> Back to Orders
     </a>
@@ -14,15 +14,15 @@
     <div class="col-lg-8">
         <!-- Order info -->
         <div class="card mb-3">
-            <div class="card-header fw-semibold">Order Information</div>
+            <div class="card-header">Order Information</div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-sm-6">
                         <p class="mb-1 text-muted small">Current Status</p>
                         {% if order.status == 'pending' %}
-                            <span class="badge bg-warning text-dark fs-6">Pending</span>
+                            <span class="badge bg-warning fs-6">Pending</span>
                         {% elif order.status == 'confirmed' %}
-                            <span class="badge bg-info text-dark fs-6">Confirmed</span>
+                            <span class="badge bg-info fs-6">Confirmed</span>
                         {% elif order.status == 'ready' %}
                             <span class="badge bg-primary fs-6">Ready</span>
                         {% elif order.status == 'delivered' %}
@@ -73,9 +73,9 @@
 
         <!-- Your items in this order -->
         <div class="card">
-            <div class="card-header fw-semibold">Your Items in This Order</div>
+            <div class="card-header">Your Items in This Order</div>
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th>Product</th>
                         <th class="text-end">Unit Price</th>
@@ -106,7 +106,7 @@
     <!-- Update status panel -->
     <div class="col-lg-4">
         <div class="card">
-            <div class="card-header fw-semibold">Update Status</div>
+            <div class="card-header">Update Status</div>
             <div class="card-body">
                 {% if valid_transitions %}
                     <p class="text-muted small mb-3">Move this order to the next stage:</p>
@@ -132,7 +132,7 @@
         </div>
 
         <div class="card mt-3">
-            <div class="card-header fw-semibold">Adjust Your Delivery Date</div>
+            <div class="card-header">Adjust Your Delivery Date</div>
             <div class="card-body">
                 <p class="text-muted small mb-2">Your sub-order delivery date: <strong>{{ producer_order.delivery_date|date:"d M Y" }}</strong></p>
                 <form method="post" action="{% url 'orders:update_delivery_date' order_id=order.pk %}">
@@ -144,7 +144,7 @@
         </div>
 
         <div class="card mt-3">
-            <div class="card-header fw-semibold">Status Timeline</div>
+            <div class="card-header">Status Timeline</div>
             <div class="card-body">
                 {% if status_history %}
                     {% for row in status_history %}

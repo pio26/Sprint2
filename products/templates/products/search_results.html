@@ -7,8 +7,8 @@
 <div class="row">
     <!-- Allergen filter sidebar (TC-015) -->
     <div class="col-md-3 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-success text-white">
+        <div class="card">
+            <div class="card-header" style="background: var(--forest); color: var(--primary-foreground);">
                 <h6 class="mb-0"><i class="bi bi-shield-check"></i> Exclude Allergens</h6>
             </div>
             <div class="card-body">
@@ -32,9 +32,9 @@
     <div class="col-md-9">
         <div class="mb-3">
             {% if query %}
-                <h4>Results for "<strong>{{ query }}</strong>"</h4>
+                <h4 class="font-display">Results for "<strong>{{ query }}</strong>"</h4>
             {% else %}
-                <h4>All Products</h4>
+                <h4 class="font-display">All Products</h4>
             {% endif %}
             <p class="text-muted">{{ products|length }} product{{ products|length|pluralize }} found</p>
         </div>
@@ -52,7 +52,7 @@
             <div class="row g-3">
                 {% for product in products %}
                 <div class="col-sm-6 col-lg-4">
-                    <div class="card h-100 shadow-sm">
+                    <div class="card h-100">
                         {% if product.image %}
                             <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 160px; object-fit: cover;">
                         {% else %}
@@ -101,11 +101,11 @@
                 {% endfor %}
             </div>
         {% else %}
-            <div class="text-center py-5">
-                <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-3">
+            <div class="empty-state">
+                <i class="bi bi-search"></i>
+                <h4>
                     {% if query %}No products found for "{{ query }}".{% else %}No products available.{% endif %}
-                </p>
+                </h4>
                 <a href="{% url 'products:product_list' %}" class="btn btn-outline-success">Browse all products</a>
             </div>
         {% endif %}

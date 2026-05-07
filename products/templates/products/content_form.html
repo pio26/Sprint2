@@ -5,8 +5,8 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <h2 class="mb-4">{{ title }}</h2>
-        <form method="post" enctype="multipart/form-data" class="card shadow-sm">
+        <h2 class="mb-4 font-display">{{ title }}</h2>
+        <form method="post" enctype="multipart/form-data" class="card">
             {% csrf_token %}
             <div class="card-body">
                 {% for field in form %}

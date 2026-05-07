@@ -1,43 +1,43 @@
 :root {
-    --bfn-green: #12854e;
-    --bfn-green-deep: #0b5f3b;
-    --bfn-ink: #18202a;
-    --bfn-muted: #617084;
-    --bfn-line: #d8e0e6;
-    --bfn-surface: #ffffff;
-    --bfn-soft: #f4f8f6;
-    --bfn-amber: #b7791f;
-    --bfn-blue: #245d8f;
-    --bfn-danger: #b42318;
+    --bfn-green: oklch(0.36 0.06 150);
+    --bfn-green-deep: oklch(0.28 0.05 140);
+    --bfn-ink: oklch(0.22 0.025 75);
+    --bfn-muted: oklch(0.45 0.02 75);
+    --bfn-line: oklch(0.88 0.025 85);
+    --bfn-surface: oklch(0.99 0.012 90);
+    --bfn-soft: oklch(0.93 0.025 90);
+    --bfn-amber: oklch(0.72 0.16 55);
+    --bfn-blue: oklch(0.55 0.1 60);
+    --bfn-danger: oklch(0.55 0.22 27);
     --primary: var(--bfn-green);
     --secondary: var(--bfn-blue);
     --accent: var(--bfn-amber);
-    --primary-fg: #ffffff;
+    --primary-fg: oklch(0.98 0.012 90);
     --body-fg: var(--bfn-ink);
-    --body-bg: #f6f7f9;
+    --body-bg: oklch(0.972 0.018 90);
     --body-quiet-color: var(--bfn-muted);
-    --header-bg: #10281f;
-    --header-color: #ffffff;
-    --breadcrumbs-bg: #e9f5ef;
-    --breadcrumbs-fg: #244033;
-    --link-fg: #106642;
-    --link-hover-color: #083d2a;
+    --header-bg: oklch(0.18 0.02 140);
+    --header-color: oklch(0.96 0.015 90);
+    --breadcrumbs-bg: oklch(0.93 0.025 90);
+    --breadcrumbs-fg: oklch(0.22 0.025 75);
+    --link-fg: oklch(0.36 0.06 150);
+    --link-hover-color: oklch(0.28 0.05 140);
     --button-bg: var(--bfn-green);
     --button-hover-bg: var(--bfn-green-deep);
 }
 
 html[data-theme="dark"] {
-    --bfn-ink: #eef4f1;
-    --bfn-muted: #a9b8c0;
-    --bfn-line: #31443d;
-    --bfn-surface: #17231f;
-    --bfn-soft: #101a17;
-    --body-bg: #0b1110;
-    --body-fg: #eef4f1;
+    --bfn-ink: oklch(0.96 0.015 90);
+    --bfn-muted: oklch(0.65 0.02 85);
+    --bfn-line: oklch(0.3 0.02 140);
+    --bfn-surface: oklch(0.22 0.025 145);
+    --bfn-soft: oklch(0.18 0.02 140);
+    --body-bg: oklch(0.18 0.02 140);
+    --body-fg: oklch(0.96 0.015 90);
 }
 
 body {
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--body-bg);
 }
 
@@ -74,9 +74,9 @@ body {
 
 .bfn-mark {
     align-items: center;
-    background: #f5b941;
+    background: oklch(0.72 0.16 55);
     border-radius: 8px;
-    color: #17231f;
+    color: oklch(0.18 0.02 140);
     display: inline-flex;
     font-size: 13px;
     font-weight: 800;

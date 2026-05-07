@@ -10,9 +10,9 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #f0f4f0;
-            color: #1a2e1a;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background: oklch(0.972 0.018 90);
+            color: oklch(0.22 0.025 75);
             min-height: 100vh;
             padding: 2rem 1rem;
         }
@@ -28,7 +28,7 @@
             flex-wrap: wrap;
         }
         .print-bar a {
-            color: #2d6a2d;
+            color: oklch(0.36 0.06 150);
             text-decoration: none;
             font-size: .9rem;
             display: flex;
@@ -37,7 +37,7 @@
         }
         .print-bar a:hover { text-decoration: underline; }
         .btn-print {
-            background: #2d6a2d;
+            background: oklch(0.36 0.06 150);
             color: #fff;
             border: none;
             border-radius: 8px;
@@ -50,7 +50,7 @@
             gap: .5rem;
             transition: background .2s;
         }
-        .btn-print:hover { background: #1e4d1e; }
+        .btn-print:hover { background: oklch(0.28 0.05 140); }
 
         /* ── Receipt card ── */
         .receipt {
@@ -59,12 +59,12 @@
             background: #fff;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 8px 40px rgba(0,0,0,.13);
+            box-shadow: 0 8px 40px oklch(0.36 0.06 150 / 0.13);
         }
 
         /* ── Header band ── */
         .receipt-header {
-            background: linear-gradient(135deg, #1e4d1e 0%, #2d6a2d 50%, #4caf50 100%);
+            background: linear-gradient(135deg, oklch(0.36 0.06 150 / 0.85), oklch(0.28 0.05 140 / 0.65));
             color: #fff;
             padding: 2.5rem 2.5rem 2rem;
             position: relative;
@@ -103,7 +103,7 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 1.6rem;
         }
-        .brand-text h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.3px; }
+        .brand-text h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.3px; font-family: "Fraunces", ui-serif, Georgia, serif; }
         .brand-text p { font-size: .78rem; opacity: .8; margin-top: .15rem; }
         .receipt-badge {
             background: rgba(255,255,255,.15);
@@ -152,8 +152,8 @@
             margin-bottom: 2rem;
         }
         .info-card {
-            background: #f8fdf8;
-            border: 1px solid #d4e8d4;
+            background: oklch(0.99 0.012 90);
+            border: 1px solid oklch(0.88 0.025 85);
             border-radius: 10px;
             padding: 1rem 1.25rem;
         }
@@ -162,11 +162,11 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .8px;
-            color: #4caf50;
+            color: oklch(0.36 0.06 150);
             display: block;
             margin-bottom: .3rem;
         }
-        .info-card p { font-size: .9rem; color: #1a2e1a; line-height: 1.4; }
+        .info-card p { font-size: .9rem; color: oklch(0.22 0.025 75); line-height: 1.4; }
 
         /* ── Section heading ── */
         .section-heading {
@@ -174,8 +174,8 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: #2d6a2d;
-            border-bottom: 2px solid #e8f5e9;
+            color: oklch(0.36 0.06 150);
+            border-bottom: 2px solid oklch(0.88 0.025 85);
             padding-bottom: .5rem;
             margin-bottom: 1.25rem;
             display: flex;
@@ -186,13 +186,13 @@
         /* ── Producer sections ── */
         .producer-section { margin-bottom: 1.5rem; }
         .producer-tag {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
+            background: oklch(0.93 0.025 90);
+            border-left: 4px solid oklch(0.36 0.06 150);
             border-radius: 0 8px 8px 0;
             padding: .5rem .9rem;
             font-size: .82rem;
             font-weight: 700;
-            color: #1e4d1e;
+            color: oklch(0.22 0.025 75);
             margin-bottom: .75rem;
             display: flex;
             align-items: center;
@@ -206,27 +206,27 @@
             font-size: .88rem;
         }
         .items-table thead th {
-            background: #f1f8f1;
-            color: #2d6a2d;
+            background: oklch(0.93 0.025 90);
+            color: oklch(0.36 0.06 150);
             font-weight: 700;
             font-size: .72rem;
             text-transform: uppercase;
             letter-spacing: .6px;
             padding: .6rem .9rem;
             text-align: left;
-            border-bottom: 2px solid #c8e6c9;
+            border-bottom: 2px solid oklch(0.88 0.025 85);
         }
         .items-table thead th:last-child { text-align: right; }
         .items-table tbody td {
             padding: .65rem .9rem;
-            border-bottom: 1px solid #f0f7f0;
+            border-bottom: 1px solid oklch(0.93 0.025 90);
             vertical-align: top;
         }
         .items-table tbody tr:last-child td { border-bottom: none; }
-        .items-table td.qty { color: #666; font-size: .82rem; }
-        .items-table td.price { text-align: right; font-weight: 600; color: #1e4d1e; white-space: nowrap; }
-        .item-name { font-weight: 600; color: #1a2e1a; }
-        .item-unit { font-size: .75rem; color: #888; margin-top: .1rem; }
+        .items-table td.qty { color: oklch(0.45 0.02 75); font-size: .82rem; }
+        .items-table td.price { text-align: right; font-weight: 600; color: oklch(0.22 0.025 75); white-space: nowrap; }
+        .item-name { font-weight: 600; color: oklch(0.22 0.025 75); }
+        .item-unit { font-size: .75rem; color: oklch(0.45 0.02 75); margin-top: .1rem; }
 
         /* ── Totals block ── */
         .totals-block {
@@ -237,21 +237,21 @@
         .totals-table { width: 340px; }
         .totals-table tr td { padding: .45rem 0; font-size: .9rem; }
         .totals-table td:last-child { text-align: right; font-weight: 600; }
-        .totals-table .divider td { border-top: 1px solid #e0eee0; padding-top: .65rem; }
-        .totals-table .commission td { color: #888; font-size: .82rem; }
+        .totals-table .divider td { border-top: 1px solid oklch(0.88 0.025 85); padding-top: .65rem; }
+        .totals-table .commission td { color: oklch(0.45 0.02 75); font-size: .82rem; }
         .totals-table .grand-total td {
             font-size: 1.15rem;
             font-weight: 800;
-            color: #1e4d1e;
-            border-top: 2.5px solid #4caf50;
+            color: oklch(0.22 0.025 75);
+            border-top: 2.5px solid oklch(0.36 0.06 150);
             padding-top: .75rem;
         }
-        .totals-table .producer-payout td { font-size: .8rem; color: #555; }
+        .totals-table .producer-payout td { font-size: .8rem; color: oklch(0.45 0.02 75); }
 
         /* ── Footer band ── */
         .receipt-footer {
-            background: #f8fdf8;
-            border-top: 2px dashed #c8e6c9;
+            background: oklch(0.99 0.012 90);
+            border-top: 2px dashed oklch(0.88 0.025 85);
             padding: 1.5rem 2.5rem;
             display: flex;
             justify-content: space-between;
@@ -259,28 +259,28 @@
             flex-wrap: wrap;
             gap: 1rem;
         }
-        .footer-note { font-size: .8rem; color: #555; max-width: 400px; line-height: 1.5; }
-        .footer-note strong { color: #2d6a2d; }
+        .footer-note { font-size: .8rem; color: oklch(0.45 0.02 75); max-width: 400px; line-height: 1.5; }
+        .footer-note strong { color: oklch(0.36 0.06 150); }
         .receipt-qr {
             width: 72px; height: 72px;
-            border: 2px solid #c8e6c9;
+            border: 2px solid oklch(0.88 0.025 85);
             border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: .55rem;
-            color: #888;
+            color: oklch(0.45 0.02 75);
             text-align: center;
             padding: .3rem;
             gap: .15rem;
         }
-        .receipt-qr i { font-size: 1.8rem; color: #4caf50; }
+        .receipt-qr i { font-size: 1.8rem; color: oklch(0.36 0.06 150); }
 
         /* ── Tear-off perforation ── */
         .perforation {
             border: none;
-            border-top: 3px dashed #c8e6c9;
+            border-top: 3px dashed oklch(0.88 0.025 85);
             margin: 0;
         }
 
@@ -292,7 +292,7 @@
             transform: translate(-50%, -50%) rotate(-30deg);
             font-size: 5rem;
             font-weight: 900;
-            color: rgba(76, 175, 80, .06);
+            color: oklch(0.36 0.06 150 / 0.06);
             pointer-events: none;
             white-space: nowrap;
             letter-spacing: 8px;

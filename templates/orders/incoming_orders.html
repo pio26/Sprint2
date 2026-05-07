@@ -3,7 +3,7 @@
 {% block title %}Incoming Orders — Bristol Food Network{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-box-seam"></i> Incoming Orders</h2>
+<h2 class="mb-4 font-display"><i class="bi bi-box-seam"></i> Incoming Orders</h2>
 
 <!-- Status filter tabs -->
 <ul class="nav nav-tabs mb-4">
@@ -27,14 +27,14 @@
 </ul>
 
 {% if not orders %}
-    <div class="text-center py-5">
-        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-        <h5 class="mt-3 text-muted">No orders found</h5>
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h4>No orders found</h4>
     </div>
 {% else %}
     <div class="table-responsive">
         <table class="table table-hover align-middle">
-            <thead class="table-light">
+            <thead>
                 <tr>
                     <th>Order #</th>
                     <th>Customer</th>
@@ -57,9 +57,9 @@
                     </td>
                     <td class="text-center">
                         {% if order.status == 'pending' %}
-                            <span class="badge bg-warning text-dark">Pending</span>
+                            <span class="badge bg-warning">Pending</span>
                         {% elif order.status == 'confirmed' %}
-                            <span class="badge bg-info text-dark">Confirmed</span>
+                            <span class="badge bg-info">Confirmed</span>
                         {% elif order.status == 'ready' %}
                             <span class="badge bg-primary">Ready</span>
                         {% elif order.status == 'delivered' %}
