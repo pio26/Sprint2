@@ -31,6 +31,8 @@ def incoming_orders(request):
     qs = qs.order_by('delivery_date', 'created_at')
     for order in qs:
         order.producer_item_count = order.items.filter(producer=producer).count()
+        producer_items = order.items.filter(producer=producer)
+        order.producer_subtotal = sum(item.line_total for item in producer_items)
 
     return render(request, 'orders/incoming_orders.html', {
         'orders': qs,

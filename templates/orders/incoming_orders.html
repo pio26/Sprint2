@@ -46,6 +46,7 @@
                     <th>Date</th>
                     <th>Delivery</th>
                     <th class="text-center">Your Items</th>
+                    <th class="text-end">Total</th>
                     <th class="text-center">Status</th>
                     <th></th>
                 </tr>
@@ -60,6 +61,7 @@
                     <td class="text-center">
                         {{ order.producer_item_count }}
                     </td>
+                    <td class="text-end">£{{ order.producer_subtotal|floatformat:2 }}</td>
                     <td class="text-center">
                         {% if order.status == 'pending' %}
                             <span class="badge bg-warning text-dark">Pending</span>

@@ -16,17 +16,17 @@
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item {% if not selected_category and not in_season_only and not organic_only %}active{% endif %}">
-                        <a href="{% url 'products:product_list' %}" class="text-decoration-none {% if not selected_category and not in_season_only %}text-white{% endif %}">
+                        <a href="{% url 'products:product_list' %}" class="text-decoration-none {% if not selected_category and not in_season_only and not organic_only %}text-white{% endif %}">
                             All Products
                         </a>
                     </li>
                     <li class="list-group-item {% if in_season_only %}active{% endif %}">
-                        <a href="{% url 'products:product_list' %}?in_season=1" class="text-decoration-none {% if in_season_only %}text-white{% endif %}">
+                        <a href="{% url 'products:product_list' %}?in_season=1{% if selected_category %}&category={{ selected_category.slug }}{% endif %}" class="text-decoration-none {% if in_season_only %}text-white{% endif %}">
                             <i class="bi bi-sun text-warning"></i> In Season
                         </a>
                     </li>
                     <li class="list-group-item {% if organic_only %}active{% endif %}">
-                        <a href="{% url 'products:product_list' %}?organic=1" class="text-decoration-none {% if organic_only %}text-white{% endif %}">
+                        <a href="{% url 'products:product_list' %}?organic=1{% if selected_category %}&category={{ selected_category.slug }}{% endif %}" class="text-decoration-none {% if organic_only %}text-white{% endif %}">
                             <i class="bi bi-leaf text-success"></i> Certified Organic
                         </a>
                     </li>
@@ -36,13 +36,18 @@
                     <ul class="list-group list-group-flush">
                         {% for cat in categories %}
                         <li class="list-group-item py-1 {% if selected_category.slug == cat.slug %}active{% endif %}">
-                            <a href="{% url 'products:product_list' %}?category={{ cat.slug }}"
+                            <a href="{% url 'products:product_list' %}?category={{ cat.slug }}{% if organic_only %}&organic=1{% endif %}{% if in_season_only %}&in_season=1{% endif %}"
                                class="text-decoration-none {% if selected_category.slug == cat.slug %}text-white{% endif %}">
                                 {{ cat.name }}
                             </a>
                         </li>
                         {% endfor %}
                     </ul>
+                    {% if selected_category or organic_only or in_season_only %}
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'products:product_list' %}" class="btn btn-sm btn-outline-secondary">Clear all filters</a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -112,11 +117,11 @@
             <nav class="mt-4">
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">Previous</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if organic_only %}&organic=1{% endif %}{% if in_season_only %}&in_season=1{% endif %}">Previous</a></li>
                     {% endif %}
                     <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
                     {% if page_obj.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}">Next</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if organic_only %}&organic=1{% endif %}{% if in_season_only %}&in_season=1{% endif %}">Next</a></li>
                     {% endif %}
                 </ul>
             </nav>

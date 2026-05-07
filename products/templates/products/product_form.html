@@ -7,7 +7,7 @@
     <div class="col-lg-9">
         <h2 class="mb-4">{% if object %}Edit: {{ object.name }}{% else %}Add New Product{% endif %}</h2>
 
-        <form method="post" enctype="multipart/form-data" novalidate>
+        <form method="post" enctype="multipart/form-data" novalidate id="product-form">
             {% csrf_token %}
 
             <!-- Basic info -->
@@ -107,6 +107,13 @@
                         </div>
                         {% endfor %}
                     </div>
+                    <div class="form-check mt-3">
+                        {{ form.allergens_declared }}
+                        <label class="form-check-label" for="{{ form.allergens_declared.id_for_label }}">
+                            {{ form.allergens_declared.label }}
+                        </label>
+                        {% if form.allergens_declared.errors %}<div class="text-danger small">{{ form.allergens_declared.errors.0 }}</div>{% endif %}
+                    </div>
                 </div>
             </div>
 
@@ -140,6 +147,20 @@
 
 {% block extra_js %}
 <script>
+    // error highlighting: add 'is-invalid' class to fields that have errors
+    (function() {
+        const errorMessages = document.querySelectorAll('.text-danger.small');
+        errorMessages.forEach(function(err) {
+            const parent = err.parentElement;
+            if (parent) {
+                const input = parent.querySelector('input, select, textarea');
+                if (input) {
+                    input.classList.add('is-invalid');
+                }
+            }
+        });
+    })();
+
     const statusSelect = document.getElementById('id_availability_status');
     const seasonDates = document.getElementById('season-dates');
 
