@@ -34,6 +34,9 @@ services:
       - DATABASE_PASSWORD=bfn_password
       - DEBUG=True
       - PAYMENT_SERVICE_URL=http://payment-mock:9000
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-gbp}
     restart: on-failure
 
   payment-mock:
@@ -80,6 +83,9 @@ services:
       - DATABASE_USER=bfn_user
       - DATABASE_PASSWORD=bfn_password
       - PAYMENT_SERVICE_URL=http://payment-mock:9000
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-gbp}
     restart: on-failure
 
 volumes:

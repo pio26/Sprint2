@@ -76,3 +76,30 @@ python manage.py createsuperuser
 ```
 
 Admin commission reports are available at `/orders/admin/commissions/` for staff users.
+
+## Stripe Test Mode
+
+The default checkout still uses the mock payment service. To enable Stripe's hosted Checkout in test mode, install dependencies and set your Stripe test keys:
+
+```powershell
+pip install -r requirements.txt
+$env:STRIPE_SECRET_KEY = "sk_test_..."
+$env:STRIPE_CURRENCY = "gbp"
+python manage.py runserver
+```
+
+When `STRIPE_SECRET_KEY` is present, checkout shows **Stripe Checkout (test mode)**. Selecting it creates the local order and a pending `Payment`, then redirects to Stripe's hosted test checkout page.
+
+For local webhook testing, run the Stripe CLI in another terminal:
+
+```powershell
+stripe listen --forward-to localhost:8000/cart/stripe/webhook/
+```
+
+Copy the `whsec_...` value from the CLI output and set it before starting Django:
+
+```powershell
+$env:STRIPE_WEBHOOK_SECRET = "whsec_..."
+```
+
+Use Stripe test card `4242 4242 4242 4242` with any future expiry date, any CVC, and any postcode. The webhook marks the local `Payment` as `completed` when Stripe sends `checkout.session.completed`.

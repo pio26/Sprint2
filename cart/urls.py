@@ -10,6 +10,7 @@ urlpatterns = [
     path('update/<int:item_id>/', views.update_cart, name='update_cart'),
     path('remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('checkout/', views.checkout, name='checkout'),
+    path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
     path('confirmation/<int:order_id>/', views.order_confirmation, name='order_confirmation'),
     path('orders/', views.order_history, name='order_history'),
     path('orders/<int:order_id>/', views.order_detail_customer, name='order_detail'),

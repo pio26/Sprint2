@@ -7,6 +7,9 @@ SECRET_KEY = 'django-insecure-change-me-in-production'
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = ['*']
 PAYMENT_SERVICE_URL = os.environ.get('PAYMENT_SERVICE_URL', '')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_CURRENCY = os.environ.get('STRIPE_CURRENCY', 'gbp')
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(

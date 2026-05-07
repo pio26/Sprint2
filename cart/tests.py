@@ -1,7 +1,9 @@
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -229,6 +231,43 @@ class CheckoutTests(TestCase):
         self.client.force_login(producer_user)
         response = self._checkout_post()
         self.assertEqual(response.status_code, 403)
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_example')
+class StripeCheckoutTests(TestCase):
+
+    def setUp(self):
+        self.customer = make_customer()
+        _, producer_profile = make_producer()
+        product = make_product(producer_profile)
+        cart = Cart.objects.create(customer=self.customer)
+        CartItem.objects.create(cart=cart, product=product, quantity=2)
+        self.url = reverse('cart:checkout')
+
+    @patch('cart.views.create_checkout_session')
+    def test_stripe_checkout_creates_pending_payment_and_redirects_to_stripe(self, create_checkout_session):
+        """Stripe test mode creates a Checkout Session and redirects to Stripe."""
+        create_checkout_session.return_value = SimpleNamespace(
+            id='cs_test_123',
+            url='https://checkout.stripe.com/c/pay/cs_test_123',
+        )
+
+        self.client.force_login(self.customer)
+        response = self.client.post(self.url, {
+            'delivery_address': '1 Test St, Bristol',
+            'delivery_date': future_date(3),
+            'payment_method': 'stripe_checkout',
+            'allergen_acknowledged': 'on',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], 'https://checkout.stripe.com/c/pay/cs_test_123')
+
+        order = Order.objects.get(customer=self.customer)
+        self.assertEqual(order.payment.payment_method, 'stripe_checkout')
+        self.assertEqual(order.payment.transaction_id, 'cs_test_123')
+        self.assertEqual(order.payment.status, 'pending')
+        self.assertEqual(CartItem.objects.filter(cart__customer=self.customer).count(), 0)
 
 
 # --- TC-012: Order History ---
