@@ -15,10 +15,8 @@ from .models import Cart, CartItem
 from .payments import process_payment
 
 
-@login_required
+@customer_required
 def cart_detail(request):
-    if request.user.role != 'customer':
-        return HttpResponseForbidden("Only customers have a cart.")
     cart, _ = Cart.objects.get_or_create(customer=request.user)
     return render(request, 'cart/cart_detail.html', {
         'cart': cart,
