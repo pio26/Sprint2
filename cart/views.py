@@ -1,9 +1,13 @@
+from datetime import datetime, timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from accounts.decorators import customer_required
 from accounts.models import Notification
@@ -15,9 +19,15 @@ from .models import Cart, CartItem
 from .payments import process_payment
 
 
+def _advance_recurring_date(template):
+    delta_days = 7 if template.frequency == 'weekly' else 14
+    template.next_delivery_date = template.next_delivery_date + timedelta(days=delta_days)
+    return template.next_delivery_date
+
+
 @login_required
 def cart_detail(request):
-    if request.user.role != 'customer':
+    if request.user.role not in ('customer', 'community', 'restaurant'):
         return HttpResponseForbidden("Only customers have a cart.")
     cart, _ = Cart.objects.get_or_create(customer=request.user)
     return render(request, 'cart/cart_detail.html', {
@@ -309,24 +319,19 @@ def reorder(request, order_id):
 @customer_required
 def order_receipt(request, order_id):
     order = get_object_or_404(Order, pk=order_id, customer=request.user)
-    lines = [
-        'Bristol Regional Food Network Receipt',
-        f'Order: {order.order_number}',
-        f'Date: {order.created_at:%d %b %Y}',
-        f'Status: {order.get_status_display()}',
-        '',
-        'Items:',
-    ]
-    for item in order.items.select_related('producer').all():
-        producer = item.producer.business_name if item.producer else 'Unknown producer'
-        lines.append(f'- {item.product_name} ({producer}) x{item.quantity}: £{item.line_total}')
-    lines.extend([
-        '',
-        f'Subtotal: £{order.total}',
-        f'Network commission included: £{order.commission_amount}',
-        f'Producer payment total: £{order.producer_payment}',
-    ])
-    return HttpResponse('\n'.join(lines), content_type='text/plain')
+    try:
+        payment = order.payment
+    except Order.payment.RelatedObjectDoesNotExist:
+        payment = None
+
+    html = render_to_string('cart/order_receipt_download.html', {
+        'order': order,
+        'payment': payment,
+        'customer': request.user,
+    })
+    response = HttpResponse(html, content_type='text/html; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{order.order_number.lower()}-receipt.html"'
+    return response
 
 
 @customer_required
@@ -343,9 +348,37 @@ def recurring_order_detail(request, recurring_id):
         customer=request.user,
     )
     if request.method == 'POST':
+        action = request.POST.get('action', 'save')
+
+        if action == 'skip':
+            previous_date = template.next_delivery_date
+            _advance_recurring_date(template)
+            template.save(update_fields=['next_delivery_date', 'updated_at'])
+            messages.success(
+                request,
+                f'Next delivery skipped. Moved from {previous_date:%d %b %Y} to {template.next_delivery_date:%d %b %Y}.',
+            )
+            return redirect('cart:recurring_order_detail', recurring_id=template.pk)
+
         template.is_active = request.POST.get('is_active') == 'on'
         template.special_instructions = request.POST.get('special_instructions', '')
-        template.save(update_fields=['is_active', 'special_instructions', 'updated_at'])
+
+        next_delivery_raw = request.POST.get('next_delivery_date', '').strip()
+        if next_delivery_raw:
+            try:
+                next_delivery_date = datetime.strptime(next_delivery_raw, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, 'Enter a valid next delivery date.')
+                return render(request, 'cart/recurring_order_detail.html', {'template': template})
+
+            min_date = (timezone.now() + timedelta(hours=48)).date()
+            if next_delivery_date < min_date:
+                messages.error(request, 'Next delivery date must be at least 48 hours from now.')
+                return render(request, 'cart/recurring_order_detail.html', {'template': template})
+
+            template.next_delivery_date = next_delivery_date
+
+        template.save(update_fields=['is_active', 'special_instructions', 'next_delivery_date', 'updated_at'])
         for item in template.items.all():
             value = request.POST.get(f'quantity_{item.pk}')
             if value:

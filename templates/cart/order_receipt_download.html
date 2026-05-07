@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt {{ order.order_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #1f2933;
+            margin: 0;
+            padding: 32px;
+            background: #f5f7f9;
+        }
+        .sheet {
+            max-width: 860px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #d9e2ec;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            border-bottom: 2px solid #e4efe7;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        .brand {
+            color: #157347;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 8px;
+        }
+        .muted {
+            color: #52606d;
+            margin: 0;
+        }
+        .pill {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #e6f4ea;
+            color: #157347;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .panel {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            background: #fbfcfd;
+        }
+        .panel h3 {
+            margin: 0 0 10px;
+            font-size: 15px;
+        }
+        .panel p {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #f7faf8;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #52606d;
+        }
+        .text-end {
+            text-align: right;
+        }
+        .totals {
+            margin-top: 20px;
+            margin-left: auto;
+            width: 320px;
+        }
+        .totals div {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .totals div:last-child {
+            font-weight: 700;
+            font-size: 18px;
+            border-bottom: 0;
+            padding-top: 14px;
+        }
+        .footer {
+            margin-top: 28px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            color: #52606d;
+            font-size: 13px;
+        }
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+            .sheet {
+                box-shadow: none;
+                border: 0;
+                border-radius: 0;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div class="header">
+            <div>
+                <p class="brand">Bristol Food Network</p>
+                <p class="muted">Marketplace receipt and payment summary</p>
+            </div>
+            <div>
+                <p class="pill">{{ order.get_status_display }}</p>
+                <p class="muted" style="margin-top: 10px;">Receipt for {{ order.order_number }}</p>
+                <p class="muted">{{ order.created_at|date:"d M Y, H:i" }}</p>
+            </div>
+        </div>
+
+        <div class="meta">
+            <div class="panel">
+                <h3>Customer</h3>
+                <p><strong>{{ customer.get_full_name|default:customer.email }}</strong></p>
+                <p>{{ customer.email }}</p>
+                <p style="white-space: pre-line;">{{ order.delivery_address }}</p>
+            </div>
+            <div class="panel">
+                <h3>Order Details</h3>
+                <p><strong>Delivery date:</strong> {{ order.delivery_date|date:"d M Y" }}</p>
+                {% if payment %}
+                <p><strong>Payment method:</strong> {{ payment.payment_method|title }}</p>
+                <p><strong>Transaction ref:</strong> {{ payment.transaction_id }}</p>
+                <p><strong>Payment status:</strong> {{ payment.get_status_display }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if order.special_instructions %}
+        <div class="panel" style="margin-bottom: 24px;">
+            <h3>Special Instructions</h3>
+            <p>{{ order.special_instructions }}</p>
+        </div>
+        {% endif %}
+
+        <h3 style="margin: 0 0 8px;">Items Purchased</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Producer</th>
+                    <th class="text-end">Unit Price</th>
+                    <th class="text-end">Qty</th>
+                    <th class="text-end">Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items.all %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td>{% if item.producer %}{{ item.producer.business_name }}{% else %}Unknown producer{% endif %}</td>
+                    <td class="text-end">£{{ item.price_at_time }}</td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td class="text-end">£{{ item.line_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div><span>Subtotal</span><span>£{{ order.total }}</span></div>
+            <div><span>Platform commission included</span><span>£{{ order.commission_amount }}</span></div>
+            <div><span>Producer payout total</span><span>£{{ order.producer_payment }}</span></div>
+            <div><span>Total charged</span><span>£{{ order.total }}</span></div>
+        </div>
+
+        <div class="footer">
+            Thank you for supporting local producers through Bristol Food Network.
+        </div>
+    </div>
+</body>
+</html>

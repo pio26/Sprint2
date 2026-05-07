@@ -83,6 +83,126 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Top Selling Products</div>
+            <div class="card-body">
+                {% if top_products %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th class="text-center">Units</th>
+                                <th class="text-center">Orders</th>
+                                <th class="text-end">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>{{ product.product_name }}</td>
+                                <td class="text-center">{{ product.total_units }}</td>
+                                <td class="text-center">{{ product.order_count }}</td>
+                                <td class="text-end">£{{ product.total_revenue }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Top sellers will appear once delivered orders start coming in.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Weekly Sales Trend</div>
+            <div class="card-body">
+                {% if weekly_sales %}
+                    {% for week in weekly_sales %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">{{ week.label }}</span>
+                            <span class="text-muted">{{ week.orders }} order{{ week.orders|pluralize }} · {{ week.units }} unit{{ week.units|pluralize }}</span>
+                        </div>
+                        <div class="progress" role="img" aria-label="Weekly revenue of £{{ week.revenue }}">
+                            <div class="progress-bar bg-success" style="width: {{ week.bar_width }}%"></div>
+                        </div>
+                        <div class="text-end small text-muted mt-1">£{{ week.revenue }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">Weekly trend data will appear once delivered orders are available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Inventory Alerts</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Low stock</span>
+                    <span class="fw-bold text-warning">{{ inventory_summary.low_stock }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Out of stock</span>
+                    <span class="fw-bold text-danger">{{ inventory_summary.out_of_stock }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="text-muted">Active surplus deals</span>
+                    <span class="fw-bold text-success">{{ inventory_summary.surplus_active }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Low Stock Summary</div>
+            <div class="card-body">
+                {% if low_stock_products %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th class="text-center">Stock</th>
+                                <th class="text-center">Threshold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in low_stock_products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.category.name|default:"—" }}</td>
+                                <td class="text-center">
+                                    {% if product.stock_quantity == 0 %}
+                                        <span class="badge bg-danger">0</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ product.stock_quantity }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ product.low_stock_threshold }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No low-stock items right now. Nice work staying ahead of inventory.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent orders -->
 <div class="card">
     <div class="card-header fw-semibold d-flex justify-content-between align-items-center">

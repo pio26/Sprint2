@@ -237,3 +237,44 @@ class PaymentSettlementsTests(TestCase):
         response = self.client.get(reverse('orders:producer_dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '20.00')  # gross: 10 * 2
+
+    def test_producer_dashboard_includes_top_selling_products_and_inventory_alerts(self):
+        """TC-015: Producer dashboard highlights top sellers and low-stock inventory."""
+        best_seller = make_product(self.producer_profile, name='Best Seller', price='6.00', stock=2)
+        steady_seller = make_product(self.producer_profile, name='Steady Seller', price='4.00', stock=8)
+        make_order(self.customer, self.producer_profile, best_seller, qty=5, status='delivered')
+        make_order(self.customer, self.producer_profile, steady_seller, qty=2, status='delivered')
+
+        self.client.force_login(self.producer_user)
+        response = self.client.get(reverse('orders:producer_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Top Selling Products')
+        self.assertContains(response, 'Best Seller')
+        self.assertEqual(response.context['top_products'][0]['product_name'], 'Best Seller')
+        self.assertEqual(response.context['inventory_summary']['low_stock'], 1)
+        self.assertEqual(response.context['inventory_summary']['out_of_stock'], 0)
+        self.assertEqual(response.context['low_stock_products'][0].name, 'Best Seller')
+
+    def test_producer_dashboard_includes_six_week_sales_trend(self):
+        """TC-015: Producer dashboard exposes a six-week weekly sales trend."""
+        older_product = make_product(self.producer_profile, name='Early Week Product', price='3.00')
+        recent_product = make_product(self.producer_profile, name='Recent Week Product', price='9.00')
+        older_order = make_order(self.customer, self.producer_profile, older_product, qty=1, status='delivered')
+        recent_order = make_order(self.customer, self.producer_profile, recent_product, qty=2, status='delivered')
+
+        now = timezone.now()
+        older_order.created_at = now - timedelta(weeks=3)
+        older_order.save(update_fields=['created_at'])
+        recent_order.created_at = now - timedelta(days=2)
+        recent_order.save(update_fields=['created_at'])
+
+        self.client.force_login(self.producer_user)
+        response = self.client.get(reverse('orders:producer_dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Weekly Sales Trend')
+        self.assertEqual(len(response.context['weekly_sales']), 6)
+        revenues = [row['revenue'] for row in response.context['weekly_sales']]
+        self.assertIn(Decimal('3.00'), revenues)
+        self.assertIn(Decimal('18.00'), revenues)

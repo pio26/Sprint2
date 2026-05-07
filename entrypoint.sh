@@ -16,4 +16,8 @@ if not User.objects.filter(email='admin@bfn.test').exists():
     print('Admin created: admin@bfn.test / Admin99!')
 "
 
+if [ "${DEBUG}" = "True" ]; then
+    exec python manage.py runserver 0.0.0.0:8000
+fi
+
 exec gunicorn config.wsgi:application --bind 0.0.0.0:8000

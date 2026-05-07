@@ -11,11 +11,25 @@
 <form method="post" class="card shadow-sm">
     {% csrf_token %}
     <div class="card-body">
-        <div class="form-check form-switch mb-3">
-            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if template.is_active %}checked{% endif %}>
-            <label class="form-check-label" for="is_active">Active</label>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="form-check form-switch mt-md-4">
+                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if template.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                        {% if template.is_active %}Active{% else %}Paused{% endif %}
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Next delivery date</label>
+                <input type="date" name="next_delivery_date" value="{{ template.next_delivery_date|date:'Y-m-d' }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Delivery pattern</label>
+                <div class="form-control bg-light">{{ template.get_frequency_display }} on {{ template.get_delivery_weekday_display }}</div>
+            </div>
         </div>
-        <p class="text-muted">{{ template.get_frequency_display }} · Next delivery {{ template.next_delivery_date }} · Delivery day {{ template.get_delivery_weekday_display }}</p>
+        <p class="text-muted">Pause or resume this template, change its next delivery date, or skip just the upcoming run.</p>
 
         <table class="table align-middle">
             <thead>
@@ -42,7 +56,10 @@
             <label class="form-label">Special instructions</label>
             <textarea name="special_instructions" class="form-control" rows="3">{{ template.special_instructions }}</textarea>
         </div>
-        <button class="btn btn-success" type="submit">Save Changes</button>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-success" type="submit" name="action" value="save">Save Changes</button>
+            <button class="btn btn-outline-warning" type="submit" name="action" value="skip">Skip Next Delivery</button>
+        </div>
     </div>
 </form>
 {% endblock %}

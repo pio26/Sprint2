@@ -88,15 +88,17 @@
             <div class="mb-3">
                 <span class="badge bg-success"><i class="bi bi-check-circle"></i> In Stock ({{ product.stock_quantity }} available)</span>
             </div>
-            {% if user.is_authenticated and user.role == 'customer' %}
-                <form action="{% url 'cart:add_to_cart' product.pk %}" method="post" class="d-flex align-items-center gap-2">
-                    {% csrf_token %}
-                    <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}"
-                           class="form-control" style="width: 80px;">
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-cart-plus"></i> Add to Cart
-                    </button>
-                </form>
+            {% if user.is_authenticated %}
+                {% if user.role == 'customer' or user.role == 'community' or user.role == 'restaurant' %}
+                    <form action="{% url 'cart:add_to_cart' product.pk %}" method="post" class="d-flex align-items-center gap-2">
+                        {% csrf_token %}
+                        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}"
+                               class="form-control" style="width: 80px;">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-cart-plus"></i> Add to Cart
+                        </button>
+                    </form>
+                {% endif %}
             {% elif not user.is_authenticated %}
                 <a href="{% url 'accounts:login' %}" class="btn btn-outline-success">
                     <i class="bi bi-box-arrow-in-right"></i> Log in to purchase

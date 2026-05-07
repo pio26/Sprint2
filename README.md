@@ -40,10 +40,24 @@ python manage.py seed_data
 
 ```bash
 docker compose up --build
-docker compose exec web python manage.py seed_data
 ```
 
 Open `http://127.0.0.1:8000`.
+
+This setup bind-mounts the project into the `web` container and now runs Django's
+auto-reloading development server when `DEBUG=True`, so local Python, template,
+and static-file changes show up without rebuilding the image. If you add or
+change Python dependencies, rebuild with:
+
+```bash
+docker compose up --build
+```
+
+If you want to reseed demo data manually:
+
+```bash
+docker compose exec web python manage.py seed_data
+```
 
 The Docker setup runs four containers:
 

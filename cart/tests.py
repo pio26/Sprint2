@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CustomerProfile, ProducerProfile, User
-from orders.models import Order, OrderItem, Payment
+from orders.models import Order, OrderItem, Payment, RecurringOrder, RecurringOrderItem
 from products.models import Category, Product
 
 from .models import Cart, CartItem
@@ -19,6 +19,20 @@ def make_customer(email='customer@test.com', password='Testpass99!'):
         first_name='Alice', last_name='Smith', role='customer'
     )
     CustomerProfile.objects.create(user=user, delivery_address='1 Test St', postcode='BS1 1AA')
+    return user
+
+
+def make_restaurant(email='restaurant@test.com', password='Testpass99!'):
+    user = User.objects.create_user(
+        email=email, password=password,
+        first_name='Riley', last_name='Chef', role='restaurant'
+    )
+    CustomerProfile.objects.create(
+        user=user,
+        delivery_address='10 Kitchen Rd',
+        postcode='BS1 2AB',
+        account_type='restaurant',
+    )
     return user
 
 
@@ -277,6 +291,25 @@ class OrderHistoryTests(TestCase):
         response = self.client.get(reverse('cart:order_history'))
         self.assertEqual(response.status_code, 302)
 
+    def test_order_receipt_download_is_formatted_html_attachment(self):
+        """TC-012: Receipt download returns a styled HTML attachment."""
+        self.client.force_login(self.customer)
+        Payment.objects.create(
+            order=self.order,
+            amount=self.order.total,
+            commission=self.order.commission_amount,
+            producer_amount=self.order.producer_payment,
+            payment_method='mock_card',
+            transaction_id='TEST-RECEIPT-001',
+            status='completed',
+        )
+        response = self.client.get(reverse('cart:order_receipt', kwargs={'order_id': self.order.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/html', response['Content-Type'])
+        self.assertIn('attachment;', response['Content-Disposition'])
+        self.assertContains(response, 'Marketplace receipt and payment summary')
+        self.assertContains(response, 'TEST-RECEIPT-001')
+
 
 # --- TC-013: Reorder ---
 
@@ -329,3 +362,65 @@ class ReorderTests(TestCase):
         self.client.force_login(other)
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 404)
+
+
+class RecurringOrderManagementTests(TestCase):
+
+    def setUp(self):
+        self.restaurant = make_restaurant()
+        _, producer_profile = make_producer()
+        product = make_product(producer_profile, stock=20)
+        self.recurring = RecurringOrder.objects.create(
+            customer=self.restaurant,
+            name='Weekly kitchen restock',
+            frequency='weekly',
+            delivery_weekday=2,
+            next_delivery_date=(timezone.now() + timedelta(days=7)).date(),
+            special_instructions='Leave by rear door',
+            is_active=True,
+        )
+        self.item = RecurringOrderItem.objects.create(
+            recurring_order=self.recurring,
+            product=product,
+            producer=producer_profile,
+            quantity=4,
+        )
+        self.url = reverse('cart:recurring_order_detail', kwargs={'recurring_id': self.recurring.pk})
+
+    def test_restaurant_can_edit_next_delivery_date_and_pause_template(self):
+        self.client.force_login(self.restaurant)
+        new_date = (timezone.now() + timedelta(days=10)).date().isoformat()
+        response = self.client.post(self.url, {
+            'action': 'save',
+            'next_delivery_date': new_date,
+            'special_instructions': 'Call on arrival',
+            f'quantity_{self.item.pk}': 6,
+        })
+        self.assertRedirects(response, self.url)
+        self.recurring.refresh_from_db()
+        self.item.refresh_from_db()
+        self.assertFalse(self.recurring.is_active)
+        self.assertEqual(self.recurring.next_delivery_date.isoformat(), new_date)
+        self.assertEqual(self.recurring.special_instructions, 'Call on arrival')
+        self.assertEqual(self.item.quantity, 6)
+
+    def test_restaurant_can_skip_next_delivery(self):
+        self.client.force_login(self.restaurant)
+        original_date = self.recurring.next_delivery_date
+        response = self.client.post(self.url, {'action': 'skip'})
+        self.assertRedirects(response, self.url)
+        self.recurring.refresh_from_db()
+        self.assertEqual(self.recurring.next_delivery_date, original_date + timedelta(days=7))
+
+    def test_recurring_next_delivery_date_must_be_at_least_48_hours_away(self):
+        self.client.force_login(self.restaurant)
+        too_soon = (timezone.now() + timedelta(days=1)).date().isoformat()
+        response = self.client.post(self.url, {
+            'action': 'save',
+            'is_active': 'on',
+            'next_delivery_date': too_soon,
+            'special_instructions': self.recurring.special_instructions,
+            f'quantity_{self.item.pk}': self.item.quantity,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '48 hours')

@@ -1,13 +1,16 @@
 import csv
 from collections import defaultdict
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.db.models import ExpressionWrapper, F, DecimalField, Sum
+from django.db.models import Count, ExpressionWrapper, F, DecimalField, Sum
+from django.db.models.functions import TruncWeek
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from accounts.decorators import producer_required
 from accounts.models import Notification
@@ -40,6 +43,11 @@ def incoming_orders(request):
 def producer_dashboard(request):
     producer = request.user.producer_profile
     orders_qs = Order.objects.filter(items__producer=producer).distinct()
+    delivered_items = OrderItem.objects.filter(producer=producer, order__status='delivered')
+    line_total = ExpressionWrapper(
+        F('price_at_time') * F('quantity'),
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
 
     stats = {
         'pending':   orders_qs.filter(status='pending').count(),
@@ -50,13 +58,9 @@ def producer_dashboard(request):
     }
 
     revenue = (
-        OrderItem.objects
-        .filter(producer=producer, order__status='delivered')
+        delivered_items
         .annotate(
-            line=ExpressionWrapper(
-                F('price_at_time') * F('quantity'),
-                output_field=DecimalField(max_digits=10, decimal_places=2),
-            )
+            line=line_total
         )
         .aggregate(total=Sum('line'))['total']
     ) or Decimal('0.00')
@@ -67,6 +71,67 @@ def producer_dashboard(request):
     )
 
     recent_orders = orders_qs.select_related('customer').order_by('-created_at')[:10]
+    top_products = list(
+        delivered_items
+        .values('product_name')
+        .annotate(
+            total_units=Sum('quantity'),
+            order_count=Count('order', distinct=True),
+            total_revenue=Sum(line_total),
+        )
+        .order_by('-total_units', '-total_revenue', 'product_name')[:5]
+    )
+    for row in top_products:
+        row['total_revenue'] = (row['total_revenue'] or Decimal('0.00')).quantize(
+            Decimal('0.01'),
+            rounding=ROUND_HALF_UP,
+        )
+
+    weekly_raw = {
+        row['week'].date(): row
+        for row in (
+            delivered_items
+            .annotate(week=TruncWeek('order__created_at'))
+            .values('week')
+            .annotate(
+                orders=Count('order', distinct=True),
+                units=Sum('quantity'),
+                revenue=Sum(line_total),
+            )
+            .order_by('-week')[:6]
+        )
+        if row['week'] is not None
+    }
+    week_anchor = timezone.now().date()
+    week_start = week_anchor - timedelta(days=week_anchor.weekday())
+    weekly_sales = []
+    for offset in range(5, -1, -1):
+        start = week_start - timedelta(weeks=offset)
+        data = weekly_raw.get(start)
+        weekly_sales.append({
+            'label': start.strftime('%d %b'),
+            'orders': data['orders'] if data else 0,
+            'units': data['units'] if data else 0,
+            'revenue': (
+                (data['revenue'] if data else Decimal('0.00')) or Decimal('0.00')
+            ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP),
+        })
+    weekly_peak = max((row['revenue'] for row in weekly_sales), default=Decimal('0.00'))
+    for row in weekly_sales:
+        if weekly_peak > 0:
+            row['bar_width'] = max(8, int((row['revenue'] / weekly_peak) * 100))
+        else:
+            row['bar_width'] = 0
+
+    products = list(
+        producer.products.select_related('category').order_by('stock_quantity', 'name')
+    )
+    low_stock_products = [product for product in products if product.is_low_stock][:5]
+    inventory_summary = {
+        'low_stock': sum(1 for product in products if product.is_low_stock and product.stock_quantity > 0),
+        'out_of_stock': sum(1 for product in products if product.stock_quantity == 0),
+        'surplus_active': sum(1 for product in products if product.is_surplus_active),
+    }
 
     return render(request, 'orders/producer_dashboard.html', {
         'stats': stats,
@@ -74,6 +139,10 @@ def producer_dashboard(request):
         'commission': commission,
         'net_payout': revenue - commission,
         'recent_orders': recent_orders,
+        'top_products': top_products,
+        'weekly_sales': weekly_sales,
+        'inventory_summary': inventory_summary,
+        'low_stock_products': low_stock_products,
     })
 
 
